@@ -3,7 +3,7 @@
   // (./public) and reserves /api/* for backend routes (Phase 3: auth + Stripe).
   // Docs verified 2026-06: developers.cloudflare.com/workers/static-assets/
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "starfall-armada",
+  "name": "informatik-10a",
   "main": "./worker/index.js",
   // Keep current; bump periodically. nodejs_compat is needed by the Stripe Node
   // SDK and better-auth (AsyncLocalStorage) added in Phase 3 — enabling it now
