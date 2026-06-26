@@ -5,6 +5,7 @@ import { Storage } from './core/Storage.js';
 import { AudioManager } from './core/AudioManager.js';
 import { UI } from './ui/UI.js';
 import { Game } from './core/Game.js';
+import { Online } from './online/Online.js';
 
 const settings = Storage.loadSettings();
 const audio = new AudioManager(settings);
@@ -12,6 +13,11 @@ const ui = new UI(settings, audio);
 
 const canvas = document.getElementById('game');
 const game = new Game({ canvas, settings, audio, ui });
+
+// Online layer: accounts, cloud leaderboard, store, entitlements.
+const online = new Online({ ui, audio });
+game.online = online;
+online.init();
 
 // Unlock the Web Audio context on the first user gesture (autoplay policy).
 const unlock = () => {

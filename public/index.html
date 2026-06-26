@@ -102,8 +102,10 @@
         </div>
         <div class="menu-buttons">
           <button class="btn btn-primary" id="btn-play">▶ PLAY</button>
-          <button class="btn" id="btn-how">HOW TO PLAY</button>
+          <button class="btn" id="btn-store">⬡ STORE</button>
           <button class="btn" id="btn-scores">LEADERBOARD</button>
+          <button class="btn" id="btn-account">ACCOUNT</button>
+          <button class="btn" id="btn-how">HOW TO PLAY</button>
           <button class="btn" id="btn-settings">SETTINGS</button>
         </div>
         <div class="menu-best">
@@ -111,7 +113,12 @@
           <strong id="menu-best-value">0</strong>
         </div>
       </div>
-      <div class="menu-footer">v1.0 · made for the void</div>
+      <!-- Account chip (filled by Online controller when signed in) -->
+      <button class="account-chip hidden" id="account-chip" aria-label="Account">
+        <span class="chip-name" id="chip-name">PILOT</span>
+        <span class="chip-credits"><span id="chip-credits">0</span> cr</span>
+      </button>
+      <div class="menu-footer">v1.0 · made for the void · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></div>
     </div>
 
     <!-- How to play -->
@@ -134,7 +141,31 @@
     <div class="screen screen-modal hidden" id="screen-scores">
       <div class="modal-card">
         <h2>LEADERBOARD</h2>
+        <div class="tabs">
+          <button class="tab is-active" id="tab-local" data-tab="local">LOCAL</button>
+          <button class="tab" id="tab-global" data-tab="global">GLOBAL</button>
+        </div>
         <ol class="score-list" id="score-list"></ol>
+        <ol class="score-list hidden" id="score-list-global"></ol>
+        <button class="btn btn-primary" data-close>BACK</button>
+      </div>
+    </div>
+
+    <!-- Account / sign-in -->
+    <div class="screen screen-modal hidden" id="screen-account">
+      <div class="modal-card" id="account-card">
+        <h2>ACCOUNT</h2>
+        <div id="account-body"><!-- filled by Online controller --></div>
+        <button class="btn btn-primary" data-close>BACK</button>
+      </div>
+    </div>
+
+    <!-- Store -->
+    <div class="screen screen-modal hidden" id="screen-store">
+      <div class="modal-card">
+        <h2>STORE</h2>
+        <div class="store-balance" id="store-balance"></div>
+        <div id="store-body" class="store-grid"><!-- filled by Online controller --></div>
         <button class="btn btn-primary" data-close>BACK</button>
       </div>
     </div>
@@ -193,6 +224,7 @@
         <div class="over-nameentry hidden" id="over-nameentry">
           <input id="over-name" maxlength="12" placeholder="YOUR CALLSIGN" autocomplete="off" />
         </div>
+        <button class="btn btn-revive hidden" id="btn-revive">↺ REVIVE · 200 cr</button>
         <button class="btn btn-primary" id="btn-again">▶ PLAY AGAIN</button>
         <button class="btn" id="btn-over-menu">MENU</button>
       </div>

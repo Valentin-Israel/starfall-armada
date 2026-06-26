@@ -75,8 +75,15 @@ export class Game {
     this.bestCombo = 1;
     this.comboTimer = 0;
     this.comboKills = 0;
+    this._usedRevive = false;
 
     this.player.reset();
+    // Entitlements: equipped skin + Battle Pass starting perk.
+    this.player.skin = this.online ? this.online.equippedSkin() : 'default';
+    if (this.online && this.online.hasPass()) {
+      this.player.weaponLevel = 2;
+      this.bombs = 4;
+    }
     this.playerBullets.clear();
     this.enemyBullets.clear();
     this.enemies.forEach((e) => (e.active = false));
@@ -117,11 +124,53 @@ export class Game {
     this.renderer.flash('#ff3b5c', 0.5);
     this.particles.explosion(this.player.x, this.player.y, '#1fd9ff', 2.4);
     this.ui.hideBoss();
+    // Submit to the cloud leaderboard if signed in (non-blocking).
+    if (this.online) this.online.submitScore(this.score, this.wave, this.bestCombo);
     setTimeout(() => {
       this.ui.showGameOver({
         score: this.score, wave: this.wave, kills: this.kills, bestCombo: this.bestCombo,
       });
+      this._offerRevive();
     }, 900);
+  }
+
+  // Show the credit-funded Revive button when the player can afford it.
+  _offerRevive() {
+    const btn = document.getElementById('btn-revive');
+    if (!btn) return;
+    const canRevive = !this._usedRevive && this.online && this.online.canRevive();
+    btn.classList.toggle('hidden', !canRevive);
+    if (canRevive && !btn._wired) {
+      btn._wired = true;
+      btn.addEventListener('click', () => this.revive());
+    }
+  }
+
+  // Spend credits to continue the current run from where you died.
+  async revive() {
+    const btn = document.getElementById('btn-revive');
+    if (!this.online || !this.online.canRevive()) return;
+    if (btn) { btn.disabled = true; btn.textContent = '…'; }
+    try {
+      await this.online.spendRevive();
+    } catch {
+      if (btn) { btn.disabled = false; btn.textContent = '↺ REVIVE · 200 cr'; }
+      return;
+    }
+    this._usedRevive = true;
+    this.audio.uiClick();
+    this.enemyBullets.clear();
+    this.lives = 1;
+    this.player.alive = true;
+    this.player.reset();
+    this.player.invuln = 2.4;
+    this.state = STATE.PLAYING;
+    this.ui.show(null);
+    this.ui.showHUD(true);
+    this._syncHUD();
+    this.audio.startMusic();
+    this.last = performance.now();
+    if (btn) { btn.disabled = false; btn.textContent = '↺ REVIVE · 200 cr'; btn.classList.add('hidden'); }
   }
 
   // ---------------- wave director ----------------
