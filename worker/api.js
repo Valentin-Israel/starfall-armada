@@ -11,6 +11,13 @@ const err = (msg, status = 400) => json({ error: msg }, status);
 const PASS_PERIOD_MS = 31 * 24 * 60 * 60 * 1000;
 const REVIVE_COST = 200;
 
+// Leaderboard scores are client-reported, so we sanity-bound them. This is not
+// anti-cheat (that needs server-side simulation) — it just stops absurd
+// injections (e.g. score=MAX_INT) from dominating the board.
+const MAX_WAVE = 999;
+const MAX_COMBO = 8;
+const maxPlausibleScore = (wave) => wave * 50000 + 200000;
+
 function getStripe(env) {
   // No httpClient needed — stripe-node auto-detects fetch on Workers.
   return new Stripe(env.STRIPE_SECRET_KEY, { appInfo: { name: 'starfall-armada' } });
@@ -53,8 +60,9 @@ export async function handleApi(request, env, ctx, url) {
     if (!user) return err('Sign in to submit scores', 401);
     const body = await request.json().catch(() => ({}));
     const score = Math.max(0, Math.floor(Number(body.score) || 0));
-    const wave = Math.max(1, Math.floor(Number(body.wave) || 1));
-    const combo = Math.max(1, Math.floor(Number(body.combo) || 1));
+    const wave = Math.min(MAX_WAVE, Math.max(1, Math.floor(Number(body.wave) || 1)));
+    const combo = Math.min(MAX_COMBO, Math.max(1, Math.floor(Number(body.combo) || 1)));
+    if (!Number.isFinite(score) || score > maxPlausibleScore(wave)) return err('Implausible score', 422);
     const callsign = String(body.callsign || user.name || 'PILOT').slice(0, 12).toUpperCase();
     await db.submitScore(env.DB, user.id, callsign, score, wave, combo);
     return json({ ok: true });
@@ -118,7 +126,8 @@ async function handleWebhook(request, env) {
   try {
     event = await stripe.webhooks.constructEventAsync(raw, sig, env.STRIPE_WEBHOOK_SECRET);
   } catch (e) {
-    return err(`Webhook signature verification failed: ${e.message}`, 400);
+    console.error('Stripe webhook signature verification failed:', e.message);
+    return err('Webhook signature verification failed', 400);
   }
 
   // Idempotency: never fulfill the same event twice.
@@ -134,11 +143,23 @@ async function handleWebhook(request, env) {
   return json({ received: true });
 }
 
+// Stripe's 2025+ ("dahlia") API moved these fields. Read the new location with a
+// fallback to the old one so we work regardless of the account's API version.
+const invoiceSubId = (inv) => inv.parent?.subscription_details?.subscription || inv.subscription || null;
+const subPeriodEndMs = (sub) => {
+  const sec = sub.items?.data?.[0]?.current_period_end || sub.current_period_end;
+  return sec ? sec * 1000 : Date.now() + PASS_PERIOD_MS;
+};
+
 async function fulfill(event, env, stripe) {
   const D = env.DB;
   switch (event.type) {
-    case 'checkout.session.completed': {
+    // 'completed' fires immediately; async payment methods settle later via
+    // 'async_payment_succeeded'. Either way, only fulfill once actually paid.
+    case 'checkout.session.completed':
+    case 'checkout.session.async_payment_succeeded': {
       const s = event.data.object;
+      if (s.payment_status !== 'paid' && s.payment_status !== 'no_payment_required') return;
       const userId = s.metadata?.userId || s.client_reference_id;
       const product = PRODUCT_BY_KEY[s.metadata?.productKey];
       if (!userId || !product) return;
@@ -157,13 +178,13 @@ async function fulfill(event, env, stripe) {
     case 'invoice.paid': {
       const inv = event.data.object;
       if (inv.billing_reason !== 'subscription_cycle') return; // first cycle handled at checkout
-      const subId = inv.subscription;
+      const subId = invoiceSubId(inv);
       if (!subId) return;
       const sub = await stripe.subscriptions.retrieve(subId);
       const userId = sub.metadata?.userId;
       const product = PRODUCT_BY_KEY[sub.metadata?.productKey];
       if (!userId) return;
-      await db.activatePass(D, userId, (sub.current_period_end || 0) * 1000 || Date.now() + PASS_PERIOD_MS);
+      await db.activatePass(D, userId, subPeriodEndMs(sub));
       if (product?.monthlyCredits) {
         await db.addCredits(D, userId, product.monthlyCredits, 'battlepass:renewal', event.id);
       }
@@ -174,7 +195,7 @@ async function fulfill(event, env, stripe) {
       const userId = sub.metadata?.userId;
       if (!userId) return;
       const active = sub.status === 'active' || sub.status === 'trialing';
-      await db.activatePass(D, userId, active ? (sub.current_period_end || 0) * 1000 : Date.now());
+      await db.activatePass(D, userId, active ? subPeriodEndMs(sub) : Date.now());
       return;
     }
     case 'customer.subscription.deleted': {

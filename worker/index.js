@@ -24,9 +24,11 @@ export default {
         }
         return await handleApi(request, env, ctx, url);
       } catch (e) {
+        // Log server-side; return an opaque error (don't leak internals to clients).
         // A misconfigured secret/binding must not take down the static game.
+        console.error('API error:', e);
         return new Response(
-          JSON.stringify({ error: 'Server error', detail: String(e?.message || e) }),
+          JSON.stringify({ error: 'Server error' }),
           { status: 500, headers: { 'content-type': 'application/json' } },
         );
       }
