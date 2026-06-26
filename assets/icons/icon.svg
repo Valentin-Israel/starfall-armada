@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#0b1640"/>
+      <stop offset="55%" stop-color="#04081c"/>
+      <stop offset="100%" stop-color="#02030a"/>
+    </radialGradient>
+    <linearGradient id="hull" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#eafcff"/>
+      <stop offset="50%" stop-color="#7fd6ee"/>
+      <stop offset="100%" stop-color="#1b6f8c"/>
+    </linearGradient>
+    <linearGradient id="flame" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1fd9ff"/>
+      <stop offset="100%" stop-color="#6c5cff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+
+  <!-- starfield specks -->
+  <g fill="#ffffff" opacity="0.85">
+    <circle cx="96" cy="120" r="2.4"/>
+    <circle cx="410" cy="96" r="2"/>
+    <circle cx="140" cy="380" r="1.8"/>
+    <circle cx="392" cy="360" r="2.6"/>
+    <circle cx="300" cy="150" r="1.6"/>
+    <circle cx="210" cy="90" r="1.4"/>
+    <circle cx="430" cy="250" r="1.8"/>
+    <circle cx="80" cy="270" r="1.6"/>
+  </g>
+
+  <!-- ship -->
+  <g filter="url(#glow)" transform="translate(256 252)">
+    <!-- engine flame -->
+    <path d="M -34 70 L 34 70 L 0 168 Z" fill="url(#flame)"/>
+    <!-- hull -->
+    <path d="M 0 -118 L 78 64 L 44 100 L 0 72 L -44 100 L -78 64 Z" fill="url(#hull)"/>
+    <!-- wing accent -->
+    <path d="M 0 -40 L 50 56 L 0 40 L -50 56 Z" fill="#000066"/>
+    <!-- cockpit -->
+    <ellipse cx="0" cy="-26" rx="18" ry="34" fill="#bfeaff"/>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Capacitor native projects (generated locally during packaging)
+/ios/
+/android/
+
+# Build / OS noise
+dist/
+.DS_Store
+*.log
