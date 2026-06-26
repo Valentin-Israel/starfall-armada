@@ -62,11 +62,18 @@ export async function addCredits(db, userId, delta, reason, stripeEventId = null
 }
 
 // Spend credits if the balance covers it. Returns the new balance, or null if insufficient.
+// Atomic: the balance is re-checked INSIDE the insert (single statement), so two
+// concurrent spends can't both pass the check and double-spend (D1 serializes writes).
 export async function spendCredits(db, userId, amount, reason) {
-  const bal = await creditBalance(db, userId);
-  if (bal < amount) return null;
-  await addCredits(db, userId, -Math.abs(amount), reason);
-  return bal - amount;
+  const amt = Math.abs(Math.floor(amount));
+  const res = await db.prepare(
+    `INSERT INTO credit_ledger (user_id, delta, reason, stripe_event_id, created_at)
+     SELECT ?1, ?2, ?3, NULL, ?4
+     WHERE (SELECT COALESCE(SUM(delta),0) FROM credit_ledger WHERE user_id = ?1) >= ?5`,
+  ).bind(userId, -amt, reason, epoch(), amt).run();
+  const changes = res?.meta?.changes ?? 0;
+  if (changes === 0) return null; // insufficient balance, or lost the race
+  return await creditBalance(db, userId);
 }
 
 export async function grantSkin(db, userId, skin) {

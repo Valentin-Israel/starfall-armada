@@ -54,5 +54,9 @@ export function createAuth(env, ctx) {
         clientSecret: env.GOOGLE_CLIENT_SECRET,
       },
     },
+    // Brute-force protection. MUST use database storage on Workers: a fresh
+    // per-request instance means the default in-memory counter never persists.
+    // better-auth applies stricter built-in limits to sign-in/sign-up/reset.
+    rateLimit: { enabled: true, storage: 'database' },
   });
 }

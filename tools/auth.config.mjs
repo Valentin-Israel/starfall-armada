@@ -16,4 +16,7 @@ export const auth = betterAuth({
   socialProviders: {
     google: { clientId: 'gen', clientSecret: 'gen' },
   },
+  // Persist rate-limit counters in the DB — required on Workers, where the
+  // in-memory store would reset on every per-request instance.
+  rateLimit: { enabled: true, storage: 'database' },
 });
