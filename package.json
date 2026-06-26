@@ -1,0 +1,29 @@
+{
+  "name": "starfall-armada",
+  "version": "1.0.0",
+  "description": "Starfall: Armada — a fast, polished arcade space shooter built with HTML5 Canvas, Web Audio and PWA tech. App-store ready via Capacitor.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "node tools/serve.js 5173",
+    "start": "node tools/serve.js 5173",
+    "icons": "node tools/generate-icons.mjs",
+    "cap:sync": "npx cap sync",
+    "cap:ios": "npx cap open ios",
+    "cap:android": "npx cap open android"
+  },
+  "keywords": [
+    "game",
+    "space-shooter",
+    "arcade",
+    "html5",
+    "canvas",
+    "pwa",
+    "capacitor"
+  ],
+  "author": "CashXChain",
+  "license": "MIT",
+  "devDependencies": {
+    "playwright-core": "^1.61.1"
+  }
+}

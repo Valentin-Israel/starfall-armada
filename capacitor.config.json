@@ -1,0 +1,24 @@
+{
+  "appId": "com.cashxchain.starfall",
+  "appName": "Starfall: Armada",
+  "webDir": ".",
+  "backgroundColor": "#02030aff",
+  "server": {
+    "androidScheme": "https"
+  },
+  "ios": {
+    "contentInset": "always",
+    "backgroundColor": "#02030aff"
+  },
+  "android": {
+    "backgroundColor": "#02030aff",
+    "allowMixedContent": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 800,
+      "backgroundColor": "#02030a",
+      "showSpinner": false
+    }
+  }
+}
