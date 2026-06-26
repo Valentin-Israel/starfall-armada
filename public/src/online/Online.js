@@ -152,7 +152,22 @@ export class Online {
           <button class="btn" id="acct-signup">CREATE ACCOUNT</button>
         </div>
         <div class="acct-msg" id="acct-msg"></div>`;
-      $('acct-google').addEventListener('click', () => { this.audio.uiClick(); api.signInGoogle().catch((e) => this._msg(e.message)); });
+      $('acct-google').addEventListener('click', (e) => {
+        // Guard against double-clicks: each social sign-in overwrites the state
+        // cookie, so a second click invalidates the first flow → state_mismatch.
+        if (this._googleBusy) return;
+        this._googleBusy = true;
+        const btn = e.currentTarget;
+        btn.disabled = true;
+        btn.textContent = 'Redirecting to Google…';
+        this.audio.uiClick();
+        api.signInGoogle().catch((err) => {
+          this._googleBusy = false;
+          btn.disabled = false;
+          btn.textContent = 'Sign in with Google';
+          this._msg(err.message);
+        });
+      });
       $('acct-signin').addEventListener('click', () => this._emailAuth(false));
       $('acct-signup').addEventListener('click', () => this._emailAuth(true));
     }
