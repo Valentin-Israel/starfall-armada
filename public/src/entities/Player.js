@@ -1,12 +1,21 @@
 // The player's ship: smooth movement with banking, tiered weapons, an energy
 // shield ability, invulnerability frames and a vector-drawn hull.
 
-import { clamp, lerp, TAU, approach } from '../core/utils.js';
+import { clamp, lerp, TAU, approach, rgba } from '../core/utils.js';
+
+// Cosmetic ship skins (purchasable). hull = [top, mid, bottom] gradient stops.
+export const SKINS = {
+  default: { hull: ['#eafcff', '#7fd6ee', '#1b6f8c'], wing: '#000066', cockpit: '#bfeaff', glow: '#1fd9ff' },
+  nebula:  { hull: ['#fbe9ff', '#c79bff', '#5b2ea8'], wing: '#2a0a5e', cockpit: '#e9ccff', glow: '#b06cff' },
+  inferno: { hull: ['#fff0e0', '#ffb066', '#9c3a12'], wing: '#5e1300', cockpit: '#ffd9b0', glow: '#ff7b3b' },
+  void:    { hull: ['#dfe6ff', '#8a93c8', '#22264a'], wing: '#05060f', cockpit: '#aab4ff', glow: '#6c5cff' },
+};
 
 export class Player {
   constructor(game) {
     this.game = game;
     this.radius = 13;
+    this.skin = 'default';
     this.reset();
   }
 
@@ -149,6 +158,8 @@ export class Player {
     ctx.translate(x, y);
     ctx.rotate(bank * 0.35);
 
+    const sk = SKINS[this.skin] || SKINS.default;
+
     // Blink while invulnerable.
     if (this.invuln > 0 && Math.floor(this.invuln * 12) % 2 === 0) ctx.globalAlpha = 0.4;
 
@@ -156,7 +167,7 @@ export class Player {
     if (quality) {
       const flick = 0.7 + Math.sin(this.thrustPhase * 40) * 0.3;
       const g = ctx.createLinearGradient(0, 10, 0, 30 + flick * 14);
-      g.addColorStop(0, 'rgba(31,217,255,0.9)');
+      g.addColorStop(0, rgba(sk.glow, 0.9));
       g.addColorStop(1, 'rgba(108,92,255,0)');
       ctx.fillStyle = g;
       ctx.beginPath();
@@ -166,11 +177,11 @@ export class Player {
 
     // Hull
     ctx.shadowBlur = quality ? 16 : 0;
-    ctx.shadowColor = '#1fd9ff';
+    ctx.shadowColor = sk.glow;
     const hull = ctx.createLinearGradient(0, -18, 0, 16);
-    hull.addColorStop(0, '#eafcff');
-    hull.addColorStop(0.5, '#7fd6ee');
-    hull.addColorStop(1, '#1b6f8c');
+    hull.addColorStop(0, sk.hull[0]);
+    hull.addColorStop(0.5, sk.hull[1]);
+    hull.addColorStop(1, sk.hull[2]);
     ctx.fillStyle = hull;
     ctx.beginPath();
     ctx.moveTo(0, -18);
@@ -184,13 +195,13 @@ export class Player {
 
     // Wing accents
     ctx.shadowBlur = 0;
-    ctx.fillStyle = '#000066';
+    ctx.fillStyle = sk.wing;
     ctx.beginPath();
     ctx.moveTo(0, -6); ctx.lineTo(7, 8); ctx.lineTo(0, 6); ctx.lineTo(-7, 8); ctx.closePath();
     ctx.fill();
 
     // Cockpit
-    ctx.fillStyle = '#bfeaff';
+    ctx.fillStyle = sk.cockpit;
     ctx.beginPath();
     ctx.ellipse(0, -4, 2.6, 5, 0, 0, TAU);
     ctx.fill();

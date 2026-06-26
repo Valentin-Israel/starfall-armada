@@ -29,5 +29,24 @@
     { "pattern": "starfall.valentin.is", "custom_domain": true }
   ],
 
+  // Non-secret config (source of truth; survives every deploy).
+  "vars": {
+    "BETTER_AUTH_URL": "https://starfall.valentin.is"
+  },
+
+  // ── Phase 3 activation ──────────────────────────────────────────────
+  // To turn on accounts / leaderboard / store, UNCOMMENT the block below
+  // AFTER creating the D1 database (dashboard → Storage & Databases → D1),
+  // paste its real database_id, commit, and the next deploy binds it.
+  // Leaving it commented keeps the static game deploying cleanly.
+  // Then run worker/schema.sql in the D1 Console, and set the Worker secrets
+  // (BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID/SECRET, RESEND_API_KEY,
+  //  STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET) + the STRIPE_PRICE_* vars.
+  // See docs/CONFIGURE.md and docs/PHASE3-AUTH-PAYMENTS.md.
+  //
+  // "d1_databases": [
+  //   { "binding": "DB", "database_name": "starfall-db", "database_id": "PASTE-D1-DATABASE-ID" }
+  // ],
+
   "observability": { "enabled": true }
 }

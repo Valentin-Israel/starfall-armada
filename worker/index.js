@@ -1,41 +1,37 @@
 // Starfall: Armada — Cloudflare Worker entry.
 //
-// A single Worker hosts the whole product:
-//   • All non-/api/* requests are served straight from the static assets in
-//     ./public by Cloudflare's asset router (edge-cached, this code is not even
-//     invoked for them — see `run_worker_first: ["/api/*"]` in wrangler.jsonc).
-//   • /api/* requests reach this fetch handler first. Today only /api/health is
-//     live; Phase 3 mounts better-auth (/api/auth/*) and Stripe (/api/stripe/*)
-//     here. See docs/PHASE3-AUTH-PAYMENTS.md.
+//   • Non-/api/* requests are served from the static assets in ./public by
+//     Cloudflare's asset router (run_worker_first: ["/api/*"] in wrangler.jsonc).
+//   • /api/auth/* is owned by better-auth (sign-in, Google callback, session).
+//   • Other /api/* routes (leaderboard, store, Stripe, credits) live in api.js.
+import { createAuth } from './auth.js';
+import { handleApi } from './api.js';
 
 export default {
   /**
    * @param {Request} request
-   * @param {{ ASSETS: Fetcher }} env
+   * @param {Record<string, any>} env
    * @param {ExecutionContext} ctx
    */
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
 
     if (url.pathname.startsWith('/api/')) {
-      // Lightweight health/version probe — useful for uptime checks & CI.
-      if (url.pathname === '/api/health' && request.method === 'GET') {
-        return Response.json({
-          ok: true,
-          app: 'starfall-armada',
-          version: '1.0.0',
-        });
+      try {
+        // better-auth owns the whole /api/auth/* subtree (incl. /callback/google).
+        if (url.pathname.startsWith('/api/auth/')) {
+          return await createAuth(env, ctx).handler(request);
+        }
+        return await handleApi(request, env, ctx, url);
+      } catch (e) {
+        // A misconfigured secret/binding must not take down the static game.
+        return new Response(
+          JSON.stringify({ error: 'Server error', detail: String(e?.message || e) }),
+          { status: 500, headers: { 'content-type': 'application/json' } },
+        );
       }
-
-      // Phase 3 (after hosting) will route here:
-      //   if (url.pathname.startsWith('/api/auth/'))   return createAuth(env, ctx).handler(request);
-      //   if (url.pathname === '/api/stripe/webhook')  return handleStripeWebhook(request, env);
-      //   if (url.pathname === '/api/leaderboard')     return handleLeaderboard(request, env);
-
-      return new Response('Not Found', { status: 404 });
     }
 
-    // Fallthrough safety net: hand anything else to the static asset router.
     return env.ASSETS.fetch(request);
   },
 };
