@@ -44,16 +44,28 @@ Firing is **automatic** — focus on dodging and positioning.
 No build step. The game uses native ES modules, so it must be served over HTTP (not opened as a `file://`).
 
 ```bash
-npm start          # → http://localhost:5173
-# or any static server, e.g.  npx serve .
+npm start          # zero-dependency static server → http://localhost:5173
+npm run cf:dev     # wrangler dev — emulates the Worker + /api routes locally
 ```
 
-Then open the URL in a browser. To verify everything works headlessly (drives a real run, checks for console errors, captures screenshots):
+Then open the URL in a browser. To verify everything works headlessly (drives a real run, checks for console errors + icon loads, captures screenshots):
 
 ```bash
 npm i -D playwright-core   # one-time, uses the system Chromium
-node tools/verify.mjs
+npm run verify
 ```
+
+---
+
+## ☁️ Hosting — Cloudflare (starfall.valentin.is)
+
+The whole product is **one Cloudflare Worker** with Static Assets: `./public` is
+served at the edge, and `/api/*` is reserved for the Phase-3 backend (auth + Stripe).
+Deploy with `npx wrangler deploy`, or connect this repo in the Cloudflare dashboard
+(Workers Builds) for push-to-deploy. Full step-by-step — including attaching the
+custom domain, D1, secrets, and the Google/Stripe/Resend setup — is in
+[`docs/DEPLOY-CLOUDFLARE.md`](docs/DEPLOY-CLOUDFLARE.md) and
+[`docs/PHASE3-AUTH-PAYMENTS.md`](docs/PHASE3-AUTH-PAYMENTS.md).
 
 ---
 
@@ -61,34 +73,33 @@ node tools/verify.mjs
 
 ```
 .
-├── index.html                # App shell: canvas, HUD, all menu screens
-├── styles/main.css           # UI styling (brand palette: navy #000066 / teal #005577)
-├── manifest.webmanifest      # PWA manifest
-├── sw.js                     # Service worker (offline app-shell cache)
-├── capacitor.config.json     # Native app packaging config
-├── src/
-│   ├── main.js               # Bootstrap: wiring, boot sequence, SW registration
-│   ├── core/
-│   │   ├── Game.js           # State machine, game loop, wave director, collisions, scoring
-│   │   ├── Renderer.js       # DPR-aware canvas, screen shake, flash
-│   │   ├── Input.js          # Keyboard / pointer / virtual-joystick input
-│   │   ├── AudioManager.js   # Procedural Web Audio SFX + music
-│   │   ├── ParticleSystem.js # Pooled particles
-│   │   ├── Starfield.js      # Parallax background
-│   │   ├── Storage.js        # Settings + leaderboard persistence
-│   │   └── utils.js          # Math / RNG helpers
-│   ├── entities/
-│   │   ├── Player.js  Enemy.js  Boss.js  Bullet.js  PowerUp.js
-│   └── ui/
-│       └── UI.js             # DOM screen routing + HUD updates
-├── assets/icons/             # SVG master + generated PNG app icons
-└── tools/
-    ├── serve.js              # Zero-dependency dev server
-    ├── generate-icons.mjs    # Render PNG icons from the master SVG
-    └── verify.mjs            # Headless smoke test
+├── wrangler.jsonc            # Cloudflare Worker config (static assets + /api + custom domain)
+├── worker/index.js           # Worker entry: serves ./public, reserves /api/* (Phase 3)
+├── capacitor.config.json     # Native app packaging config (webDir: public)
+├── public/                   # ← everything served to the browser (the game)
+│   ├── index.html            # App shell: canvas, HUD, all menu screens
+│   ├── favicon.ico           # Multi-res 16/32/48 favicon
+│   ├── _headers              # Per-path Content-Type / Cache-Control for Cloudflare
+│   ├── manifest.webmanifest  # PWA manifest
+│   ├── sw.js                 # Service worker (offline app-shell cache)
+│   ├── styles/main.css       # UI styling (brand palette: navy #000066 / teal #005577)
+│   ├── assets/icons/         # SVG master + generated PNG app icons
+│   └── src/
+│       ├── main.js           # Bootstrap: wiring, boot sequence, SW registration
+│       ├── core/             # Game.js, Renderer.js, Input.js, AudioManager.js,
+│       │                     #   ParticleSystem.js, Starfield.js, Storage.js, utils.js
+│       ├── entities/         # Player, Enemy, Boss, Bullet, PowerUp
+│       └── ui/UI.js          # DOM screen routing + HUD updates
+├── tools/
+│   ├── serve.js              # Zero-dependency dev server (serves ./public)
+│   ├── generate-icons.mjs    # Render PNG icons + favicon.ico from the master SVG
+│   └── verify.mjs            # Headless smoke test
+└── docs/
+    ├── DEPLOY-CLOUDFLARE.md      # How to host at starfall.valentin.is
+    └── PHASE3-AUTH-PAYMENTS.md   # Auth + leaderboard + Stripe blueprint
 ```
 
-**Tech:** Vanilla JavaScript (ES2022 modules), HTML5 Canvas 2D, Web Audio API, Service Workers. **No frameworks, no bundler, no runtime dependencies.**
+**Tech:** Vanilla JavaScript (ES2022 modules), HTML5 Canvas 2D, Web Audio API, Service Workers. **No frameworks, no bundler, no runtime dependencies.** Hosted on a single **Cloudflare Worker** (Static Assets) so the game and the future `/api/*` backend (auth + Stripe) ship together.
 
 ---
 
@@ -104,7 +115,7 @@ npm install -D @capacitor/cli
 npm install @capacitor/ios @capacitor/android @capacitor/splash-screen @capacitor/status-bar
 ```
 
-`capacitor.config.json` is already configured (`appId: com.cashxchain.starfall`, `webDir: .`).
+`capacitor.config.json` is already configured (`appId: com.cashxchain.starfall`, `webDir: public`).
 
 ### 2. Add the native platforms
 

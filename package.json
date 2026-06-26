@@ -1,13 +1,16 @@
 {
   "name": "starfall-armada",
   "version": "1.0.0",
-  "description": "Starfall: Armada — a fast, polished arcade space shooter built with HTML5 Canvas, Web Audio and PWA tech. App-store ready via Capacitor.",
+  "description": "Starfall: Armada — a fast, polished arcade space shooter built with HTML5 Canvas, Web Audio and PWA tech. Hosted on Cloudflare Workers; app-store ready via Capacitor.",
   "type": "module",
   "private": true,
   "scripts": {
     "dev": "node tools/serve.js 5173",
     "start": "node tools/serve.js 5173",
+    "cf:dev": "wrangler dev",
+    "deploy": "wrangler deploy",
     "icons": "node tools/generate-icons.mjs",
+    "verify": "node tools/verify.mjs",
     "cap:sync": "npx cap sync",
     "cap:ios": "npx cap open ios",
     "cap:android": "npx cap open android"
@@ -19,11 +22,13 @@
     "html5",
     "canvas",
     "pwa",
+    "cloudflare-workers",
     "capacitor"
   ],
   "author": "CashXChain",
   "license": "MIT",
   "devDependencies": {
-    "playwright-core": "^1.61.1"
+    "playwright-core": "^1.61.1",
+    "wrangler": "^4.20.0"
   }
 }

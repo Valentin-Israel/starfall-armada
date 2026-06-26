@@ -7,7 +7,8 @@ import path from 'node:path';
 import url from 'node:url';
 
 const __dirname = path.dirname(url.fileURLToPath(import.meta.url));
-const ROOT = path.resolve(__dirname, '..');
+// Static assets live in ./public (the same directory Cloudflare Workers serves).
+const ROOT = path.resolve(__dirname, '..', 'public');
 const PORT = Number(process.argv[2]) || 5173;
 
 const MIME = {

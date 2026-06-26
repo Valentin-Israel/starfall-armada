@@ -1,0 +1,29 @@
+# Cloudflare Workers Static Assets — custom response headers.
+# Docs: developers.cloudflare.com/workers/static-assets/headers/
+
+# Pin the spec-correct manifest MIME (do NOT rely on .webmanifest auto-detection;
+# a manifest served as application/json or text/plain can be rejected, which
+# would take the install icons down with it).
+/manifest.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Stable-named icons: revalidate via ETag (Cloudflare's default), never immutable —
+# editing an unhashed icon behind a long max-age would strand users on the old one.
+/favicon.ico
+  Cache-Control: public, max-age=86400
+/assets/icons/icon.svg
+  Content-Type: image/svg+xml; charset=utf-8
+  Cache-Control: public, max-age=0, must-revalidate
+/assets/icons/*
+  Cache-Control: public, max-age=86400
+
+# The ES modules and styles are referenced by stable names; revalidate to stay fresh.
+/src/*
+  Cache-Control: public, max-age=0, must-revalidate
+/styles/*
+  Cache-Control: public, max-age=0, must-revalidate
+
+# Service worker must never be cached, or clients won't pick up new versions.
+/sw.js
+  Cache-Control: public, max-age=0, must-revalidate

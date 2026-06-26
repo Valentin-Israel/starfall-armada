@@ -17,7 +17,31 @@ const page = await ctx.newPage();
 page.on('console', (m) => { if (m.type() === 'error') errors.push('console.error: ' + m.text()); });
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
 
+// Track icon / manifest delivery so a broken favicon is caught, not just JS.
+const ICONS = ['/favicon.ico', '/assets/icons/icon.svg', '/assets/icons/apple-touch-icon.png', '/manifest.webmanifest', '/assets/icons/icon-192.png'];
+const matchIcon = (u) => ICONS.find((p) => u.endsWith(p));
+page.on('requestfailed', (r) => {
+  const p = matchIcon(r.url());
+  if (p) errors.push('icon request failed: ' + p);
+});
+
 await page.goto(URL, { waitUntil: 'networkidle' });
+
+// Explicitly fetch every icon from the page context and assert 200 + type.
+const iconChecks = await page.evaluate(async (icons) => {
+  const out = {};
+  for (const p of icons) {
+    try {
+      const res = await fetch(p, { cache: 'no-store' });
+      out[p] = { status: res.status, type: res.headers.get('content-type') };
+    } catch (e) { out[p] = { status: 0, error: String(e) }; }
+  }
+  return out;
+}, ICONS);
+console.log('icon checks:', JSON.stringify(iconChecks));
+for (const [p, r] of Object.entries(iconChecks)) {
+  if (r.status !== 200) errors.push(`icon ${p} returned ${r.status}`);
+}
 
 // Wait for boot → menu transition.
 await page.waitForSelector('#screen-menu:not(.hidden)', { timeout: 8000 });
