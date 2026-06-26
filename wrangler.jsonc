@@ -43,10 +43,9 @@
   // (BETTER_AUTH_SECRET, GOOGLE_CLIENT_ID/SECRET, RESEND_API_KEY,
   //  STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET) + the STRIPE_PRICE_* vars.
   // See docs/CONFIGURE.md and docs/PHASE3-AUTH-PAYMENTS.md.
-  //
-  // "d1_databases": [
-  //   { "binding": "DB", "database_name": "starfall-db", "database_id": "PASTE-D1-DATABASE-ID" }
-  // ],
+  "d1_databases": [
+    { "binding": "DB", "database_name": "starfall-db", "database_id": "6f5291ef-6318-4fd0-9edd-20c82627daa2" }
+  ],
 
   "observability": { "enabled": true }
 }

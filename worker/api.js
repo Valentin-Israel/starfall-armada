@@ -1,7 +1,7 @@
 // Application API (everything under /api/ except /api/auth/*, which better-auth owns).
 import Stripe from 'stripe';
 import { createAuth } from './auth.js';
-import { PRODUCT_BY_KEY, priceIdFor, publicCatalog } from './products.js';
+import { PRODUCTS, PRODUCT_BY_KEY, priceIdFor, publicCatalog } from './products.js';
 import * as db from './db.js';
 
 const json = (data, status = 200) =>
@@ -34,7 +34,33 @@ export async function handleApi(request, env, ctx, url) {
   const method = request.method;
 
   if (pathname === '/api/health' && method === 'GET') {
-    return json({ ok: true, app: 'starfall-armada', version: '1.0.0' });
+    // Setup diagnostic — reports which bindings/secrets are configured (booleans
+    // only, never values) and whether D1 is bound + the schema is applied.
+    // Handy during activation; safe to leave (exposes no secrets).
+    let dbStatus = 'unbound';
+    if (env.DB) {
+      try {
+        await env.DB.prepare('SELECT 1 FROM leaderboard LIMIT 1').all();
+        dbStatus = 'ok';
+      } catch {
+        dbStatus = 'bound-but-no-schema';
+      }
+    }
+    return json({
+      ok: true,
+      app: 'starfall-armada',
+      version: '1.0.0',
+      config: {
+        db: dbStatus,
+        betterAuthUrl: env.BETTER_AUTH_URL || null,
+        betterAuthSecret: !!env.BETTER_AUTH_SECRET,
+        google: !!(env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET),
+        resend: !!env.RESEND_API_KEY,
+        stripeSecret: !!env.STRIPE_SECRET_KEY,
+        stripeWebhook: !!env.STRIPE_WEBHOOK_SECRET,
+        prices: Object.fromEntries(PRODUCTS.map((p) => [p.key, !!env[p.priceEnv]])),
+      },
+    });
   }
 
   // Public store catalog (only products whose Stripe price id is configured).
