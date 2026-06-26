@@ -119,62 +119,208 @@ export class Enemy {
   render(ctx, quality) {
     ctx.save();
     ctx.translate(this.x, this.y);
-    if (quality) { ctx.shadowBlur = 14; ctx.shadowColor = this.color; }
-    const c = this.hitFlash > 0 ? '#ffffff' : this.color;
+    const flash = this.hitFlash > 0;
+    const c = flash ? '#ffffff' : this.color;
+    const r = this.radius;
 
     if (this.type === 'tank') {
-      // Hexagonal heavy.
+      // ---- TANK: rotating armoured space fortress ----
+      ctx.save();
       ctx.rotate(this.t * 0.4);
+
+      // Outer hex hull with glow
+      if (quality) { ctx.shadowBlur = 18; ctx.shadowColor = this.color; }
       ctx.fillStyle = c;
       ctx.beginPath();
       for (let i = 0; i < 6; i++) {
         const a = (i / 6) * TAU;
-        const r = this.radius;
-        i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r) : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
+        i === 0 ? ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r)
+                : ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r);
       }
       ctx.closePath();
       ctx.fill();
+
+      // Armour panel lines (radial struts to hex vertices)
       ctx.shadowBlur = 0;
-      ctx.fillStyle = '#02030a';
-      ctx.beginPath(); ctx.arc(0, 0, this.radius * 0.45, 0, TAU); ctx.fill();
+      ctx.strokeStyle = flash ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.55)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      for (let i = 0; i < 6; i++) {
+        const a = (i / 6) * TAU;
+        ctx.moveTo(Math.cos(a) * r * 0.42, Math.sin(a) * r * 0.42);
+        ctx.lineTo(Math.cos(a) * r * 0.95, Math.sin(a) * r * 0.95);
+      }
+      ctx.stroke();
+
+      // Inner ring track
+      ctx.strokeStyle = flash ? 'rgba(255,200,100,0.5)' : this.color + '66';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.62, 0, TAU); ctx.stroke();
+
+      // Dark core cavity
+      ctx.fillStyle = flash ? '#331100' : '#02030a';
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.43, 0, TAU); ctx.fill();
+
+      // Weapon barrel (points toward player, i.e. +y — pointing down)
+      ctx.fillStyle = flash ? '#ffffff' : '#cc5500';
+      ctx.fillRect(-r * 0.1, r * 0.2, r * 0.2, r * 0.28);
+      ctx.fillStyle = flash ? '#ffffff' : '#884400';
+      ctx.fillRect(-r * 0.07, r * 0.42, r * 0.14, r * 0.1);
+
+      // Glowing energy core
+      if (quality) { ctx.shadowBlur = 16; ctx.shadowColor = this.color; }
       ctx.fillStyle = c;
-      ctx.beginPath(); ctx.arc(0, 0, this.radius * 0.22, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.22, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#fff8ee';
+      ctx.beginPath(); ctx.arc(0, 0, r * 0.1, 0, TAU); ctx.fill();
+
+      ctx.restore(); // undo rotation — HP bar drawn in axis-aligned space below
+
     } else if (this.type === 'kamikaze') {
-      // Downward dart.
-      ctx.fillStyle = c;
+      // ---- KAMIKAZE: suicide lance, nose pointing down toward player ----
+      if (quality) { ctx.shadowBlur = 14; ctx.shadowColor = '#ff3b5c'; }
+
+      // Body gradient (center-bright)
+      if (!flash) {
+        const g = ctx.createLinearGradient(-r * 0.5, 0, r * 0.5, 0);
+        g.addColorStop(0, '#550011'); g.addColorStop(0.5, c); g.addColorStop(1, '#550011');
+        ctx.fillStyle = g;
+      } else { ctx.fillStyle = '#ffffff'; }
       ctx.beginPath();
-      ctx.moveTo(0, this.radius);
-      ctx.lineTo(this.radius * 0.8, -this.radius * 0.8);
-      ctx.lineTo(0, -this.radius * 0.3);
-      ctx.lineTo(-this.radius * 0.8, -this.radius * 0.8);
+      ctx.moveTo(0, r);              // nose → player
+      ctx.lineTo(r * 0.5, r * 0.05);
+      ctx.lineTo(r * 0.28, -r * 0.72);
+      ctx.lineTo(0, -r * 0.38);
+      ctx.lineTo(-r * 0.28, -r * 0.72);
+      ctx.lineTo(-r * 0.5, r * 0.05);
       ctx.closePath();
       ctx.fill();
-    } else {
-      // Drone / fighter: inverted wing.
-      ctx.fillStyle = c;
-      ctx.beginPath();
-      ctx.moveTo(0, this.radius);
-      ctx.lineTo(this.radius, -this.radius * 0.6);
-      ctx.lineTo(this.radius * 0.4, -this.radius * 0.2);
-      ctx.lineTo(0, -this.radius * 0.5);
-      ctx.lineTo(-this.radius * 0.4, -this.radius * 0.2);
-      ctx.lineTo(-this.radius, -this.radius * 0.6);
-      ctx.closePath();
-      ctx.fill();
+
+      // Swept rear fins
       ctx.shadowBlur = 0;
-      ctx.fillStyle = '#02030a';
-      ctx.beginPath(); ctx.arc(0, -this.radius * 0.1, this.radius * 0.3, 0, TAU); ctx.fill();
+      ctx.fillStyle = flash ? '#ffffff' : '#cc2244';
+      ctx.beginPath(); // left fin
+      ctx.moveTo(-r * 0.14, -r * 0.48);
+      ctx.lineTo(-r * 0.82, -r * 1.02);
+      ctx.lineTo(-r * 0.58, -r * 0.58);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath(); // right fin
+      ctx.moveTo(r * 0.14, -r * 0.48);
+      ctx.lineTo(r * 0.82, -r * 1.02);
+      ctx.lineTo(r * 0.58, -r * 0.58);
+      ctx.closePath(); ctx.fill();
+
+      // Glowing core (warhead)
+      if (quality) { ctx.shadowBlur = 14; ctx.shadowColor = '#ff6666'; }
+      ctx.fillStyle = flash ? '#ffffff' : '#ff8888';
+      ctx.beginPath(); ctx.arc(0, r * 0.14, r * 0.22, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#ffdddd';
+      ctx.beginPath(); ctx.arc(0, r * 0.14, r * 0.1, 0, TAU); ctx.fill();
+
+    } else if (this.type === 'fighter') {
+      // ---- FIGHTER: stealth delta interceptor, nose pointing down ----
+      if (quality) { ctx.shadowBlur = 12; ctx.shadowColor = this.color; }
+
+      // Hull gradient (brighter at nose)
+      if (!flash) {
+        const g = ctx.createLinearGradient(0, r, 0, -r * 0.8);
+        g.addColorStop(0, '#062830'); g.addColorStop(0.4, c); g.addColorStop(1, '#0c5060');
+        ctx.fillStyle = g;
+      } else { ctx.fillStyle = '#ffffff'; }
+      ctx.beginPath();
+      ctx.moveTo(0, r);               // nose → player
+      ctx.lineTo(r * 0.98, -r * 0.38);
+      ctx.lineTo(r * 0.5, -r * 0.25);
+      ctx.lineTo(r * 0.26, -r * 0.82);
+      ctx.lineTo(0, -r * 0.62);
+      ctx.lineTo(-r * 0.26, -r * 0.82);
+      ctx.lineTo(-r * 0.5, -r * 0.25);
+      ctx.lineTo(-r * 0.98, -r * 0.38);
+      ctx.closePath();
+      ctx.fill();
+
+      // Centre spine panel
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = flash ? 'rgba(255,255,255,0.4)' : 'rgba(31,217,255,0.3)';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(0, r * 0.75); ctx.lineTo(0, -r * 0.55); ctx.stroke();
+
+      // Cockpit sensor (elongated glow)
+      if (quality) { ctx.shadowBlur = 10; ctx.shadowColor = '#1fd9ff'; }
+      ctx.fillStyle = flash ? '#ffffff' : 'rgba(31,217,255,0.9)';
+      ctx.beginPath();
+      ctx.ellipse(0, r * 0.18, r * 0.12, r * 0.28, 0, 0, TAU);
+      ctx.fill();
+
+      // Twin engine pods (at rear / top)
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = flash ? '#ffffff' : '#0a4a5a';
+      ctx.beginPath(); ctx.ellipse(-r * 0.3, -r * 0.64, r * 0.15, r * 0.24, 0, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.ellipse(r * 0.3, -r * 0.64, r * 0.15, r * 0.24, 0, 0, TAU); ctx.fill();
+
+      // Engine nozzle glow
+      if (quality) { ctx.shadowBlur = 9; ctx.shadowColor = '#1fd9ff'; }
+      ctx.fillStyle = flash ? '#ffffff' : '#1fd9ff';
+      ctx.beginPath(); ctx.arc(-r * 0.3, -r * 0.78, r * 0.08, 0, TAU); ctx.fill();
+      ctx.beginPath(); ctx.arc(r * 0.3, -r * 0.78, r * 0.08, 0, TAU); ctx.fill();
+
+    } else {
+      // ---- DRONE: alien saucer scout ----
+      if (quality) { ctx.shadowBlur = 12; ctx.shadowColor = this.color; }
+
+      // Main disc hull (ellipse — wide and flat)
+      if (!flash) {
+        const g = ctx.createLinearGradient(0, -r * 0.5, 0, r * 0.5);
+        g.addColorStop(0, '#1a1060'); g.addColorStop(0.5, c); g.addColorStop(1, '#1a1060');
+        ctx.fillStyle = g;
+      } else { ctx.fillStyle = '#ffffff'; }
+      ctx.beginPath();
+      ctx.ellipse(0, 0, r, r * 0.46, 0, 0, TAU);
+      ctx.fill();
+
+      // Swept delta wings (extend beyond disc)
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = flash ? '#ffffff' : '#3520aa';
+      ctx.beginPath(); // left wing
+      ctx.moveTo(-r * 0.42, -r * 0.06);
+      ctx.lineTo(-r * 1.08, -r * 0.44);
+      ctx.lineTo(-r * 0.9, r * 0.18);
+      ctx.lineTo(-r * 0.28, r * 0.18);
+      ctx.closePath(); ctx.fill();
+      ctx.beginPath(); // right wing
+      ctx.moveTo(r * 0.42, -r * 0.06);
+      ctx.lineTo(r * 1.08, -r * 0.44);
+      ctx.lineTo(r * 0.9, r * 0.18);
+      ctx.lineTo(r * 0.28, r * 0.18);
+      ctx.closePath(); ctx.fill();
+
+      // Undercarriage rim detail
+      ctx.strokeStyle = flash ? 'rgba(255,255,255,0.35)' : this.color + '55';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.ellipse(0, 0, r * 0.78, r * 0.36, 0, 0, TAU); ctx.stroke();
+
+      // Sensor dome (dark housing)
+      ctx.fillStyle = flash ? '#aaaaaa' : '#02030a';
+      ctx.beginPath();
+      ctx.ellipse(0, -r * 0.04, r * 0.34, r * 0.24, 0, 0, TAU);
+      ctx.fill();
+
+      // Glowing central eye
+      if (quality) { ctx.shadowBlur = 12; ctx.shadowColor = this.color; }
+      ctx.fillStyle = c;
+      ctx.beginPath(); ctx.arc(0, -r * 0.04, r * 0.15, 0, TAU); ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath(); ctx.arc(-r * 0.04, -r * 0.07, r * 0.055, 0, TAU); ctx.fill(); // lens glint
     }
 
-    // HP pip for tougher enemies.
+    // HP pip for tougher enemies (always in non-rotated space).
     if (quality && this.maxHp > 3 && this.hp < this.maxHp) {
       ctx.shadowBlur = 0;
-      ctx.rotate(-this.t * 0.4);
-      const w = this.radius * 1.6;
+      const w = r * 1.6;
       ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(-w / 2, -this.radius - 9, w, 4);
+      ctx.fillRect(-w / 2, -r - 9, w, 4);
       ctx.fillStyle = '#ff3b5c';
-      ctx.fillRect(-w / 2, -this.radius - 9, w * (this.hp / this.maxHp), 4);
+      ctx.fillRect(-w / 2, -r - 9, w * (this.hp / this.maxHp), 4);
     }
     ctx.restore();
   }
