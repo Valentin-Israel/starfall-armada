@@ -43,6 +43,7 @@
         </div>
         <div class="hud-right">
           <div class="hud-lives" id="hud-lives" aria-label="Lives"></div>
+          <div class="hud-hp-bar" id="hud-hp-bar"><div class="hud-hp-fill" id="hud-hp-fill"></div></div>
           <button id="btn-pause" class="hud-pause" aria-label="Pause">II</button>
         </div>
       </div>
@@ -102,6 +103,7 @@
         </div>
         <div class="menu-buttons">
           <button class="btn btn-primary" id="btn-play">▶ PLAY</button>
+          <button class="btn" id="btn-shop">HANGAR</button>
           <button class="btn" id="btn-how">HOW TO PLAY</button>
           <button class="btn" id="btn-scores">LEADERBOARD</button>
           <button class="btn" id="btn-settings">SETTINGS</button>
@@ -109,9 +111,27 @@
         <div class="menu-best">
           <span>BEST</span>
           <strong id="menu-best-value">0</strong>
+          <span class="menu-divider">·</span>
+          <span>CREDITS</span>
+          <strong id="menu-credits-value" class="credits-value">0</strong>
         </div>
       </div>
       <div class="menu-footer">v1.0 · made for the void</div>
+    </div>
+
+    <!-- Hangar / Ship Shop -->
+    <div class="screen screen-modal hidden" id="screen-shop">
+      <div class="modal-card shop-card">
+        <div class="shop-header">
+          <h2>HANGAR</h2>
+          <div class="shop-wallet">
+            <span class="shop-credits-label">CREDITS</span>
+            <strong id="shop-credits-value" class="shop-credits-amount">0</strong>
+          </div>
+        </div>
+        <div class="ship-grid" id="ship-grid"></div>
+        <button class="btn btn-primary" data-close>BACK</button>
+      </div>
     </div>
 
     <!-- How to play -->
@@ -189,6 +209,7 @@
             <div><span>BEST COMBO</span><strong id="over-combo">x1</strong></div>
           </div>
         </div>
+        <div class="over-credits-earned" id="over-credits-earned"></div>
         <div class="over-newbest hidden" id="over-newbest">★ NEW RECORD ★</div>
         <div class="over-nameentry hidden" id="over-nameentry">
           <input id="over-name" maxlength="12" placeholder="YOUR CALLSIGN" autocomplete="off" />

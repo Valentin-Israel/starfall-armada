@@ -8,9 +8,12 @@ import { Starfield } from './Starfield.js';
 import { Player } from '../entities/Player.js';
 import { Enemy } from '../entities/Enemy.js';
 import { Boss } from '../entities/Boss.js';
+import { Asteroid } from '../entities/Asteroid.js';
 import { PowerUp } from '../entities/PowerUp.js';
 import { BulletPool } from '../entities/Bullet.js';
 import { circleHit, rand, chance, pick, clamp } from './utils.js';
+import { getShip } from '../data/Ships.js';
+import { Storage } from './Storage.js';
 
 const STATE = { BOOT: 'boot', MENU: 'menu', PLAYING: 'playing', PAUSED: 'paused', OVER: 'over' };
 
@@ -27,6 +30,7 @@ export class Game {
     this.playerBullets = new BulletPool(400);
     this.enemyBullets = new BulletPool(600);
     this.enemies = Array.from({ length: 64 }, () => new Enemy());
+    this.asteroids = Array.from({ length: 30 }, () => new Asteroid());
     this.powerups = Array.from({ length: 24 }, () => new PowerUp());
     this.boss = new Boss();
     this.player = new Player(this);
@@ -51,6 +55,7 @@ export class Game {
     this.ui.on('quit', () => this.toMenu());
     this.ui.on('pauseToggle', () => (this.state === STATE.PAUSED ? this.resume() : this.pause()));
     this.ui.on('settingsChanged', () => this.renderer.resize());
+    this.ui.on('shopOpen', () => { this.ui.showShop(); });
   }
 
   // ---------------- lifecycle ----------------
@@ -64,11 +69,15 @@ export class Game {
   }
 
   startRun() {
+    // Load selected ship and apply its stats.
+    const ship = getShip(Storage.getSelectedShipId());
+    this.currentShip = ship;
+
     // Reset run state.
     this.score = 0;
     this.displayScore = 0;
-    this.lives = 3;
-    this.bombs = 3;
+    this.lives = ship.startLives;
+    this.bombs = ship.startBombs;
     this.wave = 0;
     this.kills = 0;
     this.combo = 1;
@@ -76,11 +85,13 @@ export class Game {
     this.comboTimer = 0;
     this.comboKills = 0;
 
-    this.player.reset();
+    this.player.reset(ship);
     this.playerBullets.clear();
     this.enemyBullets.clear();
     this.enemies.forEach((e) => (e.active = false));
+    this.asteroids.forEach((a) => (a.active = false));
     this.powerups.forEach((p) => (p.active = false));
+    this.asteroidTimer = 3;
     this.boss.active = false;
     this.ui.hideBoss();
 
@@ -92,6 +103,7 @@ export class Game {
     this.state = STATE.PLAYING;
     this.ui.show(null);
     this.ui.showHUD(true);
+    this.ui.setShipAbility(ship);
     this._syncHUD();
     this.audio.startMusic();
     this._nextWave();
@@ -110,6 +122,7 @@ export class Game {
   }
 
   gameOver() {
+    Storage.addCredits(Math.floor(this.score));
     this.state = STATE.OVER;
     this.audio.stopMusic();
     this.audio.bigExplosion();
@@ -169,6 +182,35 @@ export class Game {
     if (e) e.spawn(type, x, y, this.wave);
   }
 
+  _spawnAsteroid() {
+    const W = this.renderer.width;
+    const roll = Math.random();
+    let size;
+    if (this.wave >= 7 && roll < 0.2) size = 'large';
+    else if (this.wave >= 4 && roll < 0.5) size = 'medium';
+    else size = 'small';
+    const a = this.asteroids.find((ast) => !ast.active);
+    if (a) a.spawn(size, rand(30, W - 30), -60, rand(-30, 30));
+  }
+
+  _onAsteroidKilled(a) {
+    this.kills++;
+    const scale = a.size === 'large' ? 1.8 : a.size === 'medium' ? 1.1 : 0.6;
+    this.particles.explosion(a.x, a.y, '#c8a96a', scale);
+    this.audio.explosion();
+    this.renderer.addShake(a.size === 'large' ? 6 : a.size === 'medium' ? 3 : 1);
+    this._bumpCombo();
+    this.score += Math.round(a.score * this.combo);
+    if (a.splitInto) {
+      for (let i = 0; i < 2; i++) {
+        const child = this.asteroids.find((c) => !c.active);
+        if (child) child.spawn(a.splitInto, a.x + rand(-20, 20), a.y + rand(-10, 10), a.vx + rand(-50, 50));
+      }
+    }
+    if (a.size === 'large' && chance(0.4)) this._dropPowerUp(a.x, a.y);
+    this._syncHUD();
+  }
+
   _dropPowerUp(x, y, forced = null) {
     const type = forced || pick(['weapon', 'rapid', 'shield', 'bomb', 'weapon', 'rapid']);
     const p = this.powerups.find((pu) => !pu.active);
@@ -190,11 +232,45 @@ export class Game {
         if (e.damage(6, this)) this._onEnemyKilled(e);
       }
     }
+    for (const a of this.asteroids) {
+      if (a.active) {
+        this.particles.explosion(a.x, a.y, a.color, 0.8);
+        if (a.damage(99, this)) this._onAsteroidKilled(a);
+      }
+    }
     if (this.boss.active) {
       this.boss.damage(40, this);
       this.particles.explosion(this.boss.x, this.boss.y, '#ffcf3b', 2);
     }
     this.particles.burst(this.player.x, this.player.y, 60, { speed: 600, life: 0.6, color: '#1fd9ff', size: 4 });
+    this._syncHUD();
+  }
+
+  // ---------------- super bomb (Warbringer) ----------------
+  useSuperBomb() {
+    if (this.bombs < 2) return;
+    this.bombs -= 2;
+    this.audio.bomb();
+    this.renderer.addShake(36);
+    this.renderer.flash('#ffcf3b', 0.9);
+    this.enemyBullets.clear();
+    for (const e of this.enemies) {
+      if (e.active) {
+        this.particles.explosion(e.x, e.y, e.color, 1.6);
+        if (e.damage(12, this)) this._onEnemyKilled(e);
+      }
+    }
+    for (const a of this.asteroids) {
+      if (a.active) {
+        this.particles.explosion(a.x, a.y, a.color, 1.0);
+        if (a.damage(99, this)) this._onAsteroidKilled(a);
+      }
+    }
+    if (this.boss.active) {
+      this.boss.damage(80, this);
+      this.particles.explosion(this.boss.x, this.boss.y, '#ffcf3b', 3.0);
+    }
+    this.particles.burst(this.player.x, this.player.y, 90, { speed: 750, life: 0.75, color: '#ffcf3b', size: 6 });
     this._syncHUD();
   }
 
@@ -211,7 +287,10 @@ export class Game {
     // Actions.
     if (this.input.consumePause()) { this.pause(); return; }
     if (this.input.consumeBomb()) this.useBomb();
-    if (this.input.consumeShield()) this.player.activateShield();
+    if (this.input.consumeShield()) {
+      if (this.player.shipId === 'warbringer') this.useSuperBomb();
+      else this.player.activateShield();
+    }
 
     this.player.update(dt, this.input);
 
@@ -224,7 +303,16 @@ export class Game {
       }
     }
 
+    // Asteroid spawning.
+    this.asteroidTimer -= dt;
+    if (this.asteroidTimer <= 0) {
+      const interval = Math.max(1.5, 4.5 - this.wave * 0.2);
+      this.asteroidTimer = interval * (0.8 + Math.random() * 0.4);
+      this._spawnAsteroid();
+    }
+
     // Entities.
+    for (const a of this.asteroids) if (a.active) a.update(dt, this);
     for (const e of this.enemies) if (e.active) e.update(dt, this);
     if (this.boss.active) {
       this.boss.update(dt, this);
@@ -242,7 +330,11 @@ export class Game {
     // Smooth score counter.
     this.displayScore += (this.score - this.displayScore) * clamp(dt * 12, 0, 1);
     this.ui.setScore(this.displayScore);
-    this.ui.setShield(this.player.shieldCooldown, this.player.shieldCdMax, this.player.hasShield);
+    if (this.player.shipId === 'warbringer') {
+      this.ui.setShield(this.bombs < 2 ? 1 : 0, 1, false);
+    } else {
+      this.ui.setShield(this.player.shieldCooldown, this.player.shieldCdMax, this.player.hasShield);
+    }
   }
 
   _collide() {
@@ -262,6 +354,15 @@ export class Game {
         b.active = false;
         this.particles.spark(b.x, b.y, '#ffcf3b');
         if (this.boss.damage(b.damage, this)) this._onBossKilled();
+        return;
+      }
+      for (const a of this.asteroids) {
+        if (!a.active) continue;
+        if (circleHit(b.x, b.y, b.radius, a.x, a.y, a.radius)) {
+          b.active = false;
+          if (a.damage(b.damage, this)) this._onAsteroidKilled(a);
+          return;
+        }
       }
     });
 
@@ -288,6 +389,16 @@ export class Game {
     if (this.boss.active && !this.boss.entering &&
         circleHit(this.boss.x, this.boss.y, this.boss.radius * 0.8, this.player.x, this.player.y, this.player.radius)) {
       if (!this.player.hit()) this._damagePlayer();
+    }
+
+    // Asteroid bodies → player.
+    for (const a of this.asteroids) {
+      if (!a.active) continue;
+      if (circleHit(a.x, a.y, a.radius * 0.85, this.player.x, this.player.y, this.player.radius)) {
+        if (!this.player.hit()) this._damagePlayer();
+        this.particles.explosion(a.x, a.y, a.color, 0.8);
+        if (a.damage(a.size === 'small' ? 99 : 3, this)) this._onAsteroidKilled(a);
+      }
     }
 
     // Power-ups → player.
@@ -396,6 +507,7 @@ export class Game {
 
   _syncHUD() {
     this.ui.setLives(this.lives);
+    this.ui.setHP(this.lives, 5);
     this.ui.setBomb(this.bombs);
     this.ui.setScore(this.score);
   }
@@ -407,6 +519,7 @@ export class Game {
     this.starfield.render(ctx, q);
 
     if (this.state === STATE.PLAYING || this.state === STATE.PAUSED || this.state === STATE.OVER) {
+      for (const a of this.asteroids) if (a.active) a.render(ctx, q);
       this.enemyBullets.forEachActive((b) => b.render(ctx, q));
       for (const p of this.powerups) if (p.active) p.render(ctx, q);
       for (const e of this.enemies) if (e.active) e.render(ctx, q);

@@ -2,6 +2,8 @@
 
 const SETTINGS_KEY = 'starfall.settings.v1';
 const SCORES_KEY = 'starfall.scores.v1';
+const CREDITS_KEY = 'starfall.credits.v1';
+const SHIP_KEY = 'starfall.ship.v1';
 
 const DEFAULT_SETTINGS = {
   sound: true,
@@ -66,4 +68,28 @@ export const Storage = {
   clearScores() {
     write(SCORES_KEY, []);
   },
+
+  // -------- credits --------
+  loadCredits() { return read(CREDITS_KEY, 0); },
+  addCredits(amount) { write(CREDITS_KEY, this.loadCredits() + Math.floor(amount)); },
+
+  // -------- ships --------
+  loadShipData() {
+    const d = read(SHIP_KEY, {});
+    return {
+      unlocked: Array.isArray(d.unlocked) ? d.unlocked : ['viper'],
+      selected: d.selected || 'viper',
+    };
+  },
+  _saveShipData(data) { write(SHIP_KEY, data); },
+  unlockShip(id) {
+    const d = this.loadShipData();
+    if (!d.unlocked.includes(id)) { d.unlocked.push(id); this._saveShipData(d); }
+  },
+  selectShip(id) {
+    const d = this.loadShipData();
+    d.selected = id;
+    this._saveShipData(d);
+  },
+  getSelectedShipId() { return this.loadShipData().selected; },
 };

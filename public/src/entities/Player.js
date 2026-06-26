@@ -10,25 +10,28 @@ export class Player {
     this.reset();
   }
 
-  reset() {
+  reset(ship = null) {
     const { width, height } = this.game.renderer;
     this.x = width / 2;
     this.y = height - 120;
     this.vx = 0;
     this.vy = 0;
-    this.speed = 560;
-    this.accel = 9;
+    this.speed = ship ? ship.speed : 560;
+    this.accel = ship ? ship.accel : 9;
     this.bank = 0;             // visual roll based on horizontal velocity
     this.fireCooldown = 0;
-    this.fireRate = 0.16;      // seconds between shots
-    this.weaponLevel = 1;      // 1..5
+    this.fireRate = ship ? ship.fireRate : 0.16;
+    this.weaponLevel = ship ? ship.weaponLevel : 1;
+    this.shipId = ship ? ship.id : 'viper';
+    this.shipColor = ship ? ship.color : '#1fd9ff';
+    this.shipHullColors = ship ? ship.hullColors : ['#eafcff', '#7fd6ee', '#1b6f8c'];
     this.rapidTimer = 0;
     this.invuln = 1.2;         // spawn protection
     this.shieldActive = false;
     this.shieldTimer = 0;
     this.shieldCooldown = 0;
-    this.shieldMax = 2.2;
-    this.shieldCdMax = 7;
+    this.shieldMax = ship ? ship.shieldMax : 2.2;
+    this.shieldCdMax = ship ? ship.shieldCdMax : 7;
     this.thrustPhase = 0;
     this.alive = true;
   }
@@ -36,6 +39,7 @@ export class Player {
   get hasShield() { return this.shieldActive && this.shieldTimer > 0; }
 
   activateShield() {
+    if (this.shieldMax <= 0) return false; // Warbringer has no shield
     if (this.shieldCooldown > 0 || this.shieldActive) return false;
     this.shieldActive = true;
     this.shieldTimer = this.shieldMax;
@@ -145,12 +149,20 @@ export class Player {
 
   render(ctx, quality) {
     const { x, y, bank } = this;
+    const [hc0, hc1, hc2] = this.shipHullColors || ['#eafcff', '#7fd6ee', '#1b6f8c'];
+    const shipColor = this.shipColor || '#1fd9ff';
+
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(bank * 0.35);
 
     // Blink while invulnerable.
     if (this.invuln > 0 && Math.floor(this.invuln * 12) % 2 === 0) ctx.globalAlpha = 0.4;
+
+    // Per-ship scaling to give each vessel a distinct silhouette.
+    if (this.shipId === 'titan')      ctx.scale(1.25, 1.0);
+    else if (this.shipId === 'specter')    ctx.scale(0.72, 1.25);
+    else if (this.shipId === 'warbringer') ctx.scale(1.4, 0.85);
 
     // Engine glow
     if (quality) {
@@ -166,11 +178,11 @@ export class Player {
 
     // Hull
     ctx.shadowBlur = quality ? 16 : 0;
-    ctx.shadowColor = '#1fd9ff';
+    ctx.shadowColor = shipColor;
     const hull = ctx.createLinearGradient(0, -18, 0, 16);
-    hull.addColorStop(0, '#eafcff');
-    hull.addColorStop(0.5, '#7fd6ee');
-    hull.addColorStop(1, '#1b6f8c');
+    hull.addColorStop(0, hc0);
+    hull.addColorStop(0.5, hc1);
+    hull.addColorStop(1, hc2);
     ctx.fillStyle = hull;
     ctx.beginPath();
     ctx.moveTo(0, -18);
@@ -190,7 +202,7 @@ export class Player {
     ctx.fill();
 
     // Cockpit
-    ctx.fillStyle = '#bfeaff';
+    ctx.fillStyle = hc0;
     ctx.beginPath();
     ctx.ellipse(0, -4, 2.6, 5, 0, 0, TAU);
     ctx.fill();
@@ -202,9 +214,9 @@ export class Player {
       const pulse = 0.6 + Math.sin(this.thrustPhase * 10) * 0.15;
       ctx.save();
       ctx.globalAlpha = clamp(this.shieldTimer / this.shieldMax + 0.2, 0.2, 0.8) * pulse;
-      ctx.strokeStyle = '#1fd9ff';
+      ctx.strokeStyle = shipColor;
       ctx.lineWidth = 2.5;
-      if (quality) { ctx.shadowBlur = 18; ctx.shadowColor = '#1fd9ff'; }
+      if (quality) { ctx.shadowBlur = 18; ctx.shadowColor = shipColor; }
       ctx.beginPath();
       ctx.arc(x, y, this.radius + 12, 0, TAU);
       ctx.stroke();
