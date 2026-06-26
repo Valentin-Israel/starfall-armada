@@ -9,9 +9,13 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
   <title>Starfall: Armada</title>
-  <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="icon" type="image/svg+xml" href="./assets/icons/icon.svg" />
-  <link rel="apple-touch-icon" href="./assets/icons/icon-192.png" />
+  <!-- Icons — order matters. .ico first with sizes="any" prevents Chromium's
+       ICO+SVG double-download; the .ico fallback covers Safari, which does not
+       render SVG tab favicons. (verified against MDN / evilmartians, 2026) -->
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/icon.svg" />
+  <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="stylesheet" href="./styles/main.css" />
 </head>
 <body>

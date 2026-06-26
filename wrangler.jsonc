@@ -1,0 +1,33 @@
+{
+  // Cloudflare Workers config — single Worker that serves the static game
+  // (./public) and reserves /api/* for backend routes (Phase 3: auth + Stripe).
+  // Docs verified 2026-06: developers.cloudflare.com/workers/static-assets/
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "starfall-armada",
+  "main": "./worker/index.js",
+  // Keep current; bump periodically. nodejs_compat is needed by the Stripe Node
+  // SDK and better-auth (AsyncLocalStorage) added in Phase 3 — enabling it now
+  // avoids a later compatibility-flag change that would alter runtime behavior.
+  "compatibility_date": "2026-06-26",
+  "compatibility_flags": ["nodejs_compat"],
+
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    // Unknown paths fall back to index.html so refreshes / deep links work.
+    "not_found_handling": "single-page-application",
+    // Send only API paths to the Worker first; everything else is served
+    // directly from the edge-cached asset router. Array form needs wrangler >= 4.20.
+    "run_worker_first": ["/api/*"]
+  },
+
+  // Custom domain. valentin.is must be an active zone in this Cloudflare account
+  // (it is). On deploy, Cloudflare auto-creates the PROXIED DNS record for
+  // starfall.valentin.is and provisions an edge certificate — no manual DNS.
+  // NOTE: starfall.valentin.is must NOT already have a conflicting CNAME record.
+  "routes": [
+    { "pattern": "starfall.valentin.is", "custom_domain": true }
+  ],
+
+  "observability": { "enabled": true }
+}

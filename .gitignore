@@ -6,6 +6,11 @@ package-lock.json
 /ios/
 /android/
 
+# Cloudflare Wrangler
+.wrangler/
+.dev.vars
+.dev.vars.*
+
 # Build / OS noise
 dist/
 .DS_Store

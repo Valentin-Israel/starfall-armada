@@ -1,7 +1,7 @@
 {
   "appId": "com.cashxchain.starfall",
   "appName": "Starfall: Armada",
-  "webDir": ".",
+  "webDir": "public",
   "backgroundColor": "#02030aff",
   "server": {
     "androidScheme": "https"
