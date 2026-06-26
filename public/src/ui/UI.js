@@ -30,6 +30,11 @@ export class UI {
       shieldAbility: $('ability-shield'),
       bombCount: $('ability-bomb-count'),
       bombAbility: $('ability-bomb'),
+      buffs: $('hud-buffs'),
+      buffWeapon: $('buff-weapon'),
+      buffWeaponLabel: $('buff-weapon-label'),
+      buffRapid: $('buff-rapid'),
+      buffRapidFill: $('buff-rapid-fill'),
       touch: $('touch-controls'),
       menuBest: $('menu-best-value'),
       menuCredits: $('menu-credits-value'),
@@ -253,6 +258,18 @@ export class UI {
     const ratio = clamp(current / max, 0, 1);
     this.el.hpFill.style.width = ratio * 100 + '%';
     this.el.hpFill.style.background = ratio > 0.6 ? '#1fd9ff' : ratio > 0.3 ? '#ffcf3b' : '#ff3b5c';
+  }
+
+  setBuffs(weaponLevel, baseWeaponLevel, rapidTimer) {
+    const hasWeapon = weaponLevel > baseWeaponLevel;
+    this.el.buffWeapon.classList.toggle('hidden', !hasWeapon);
+    if (hasWeapon) this.el.buffWeaponLabel.textContent = 'WPN ' + weaponLevel;
+
+    const hasRapid = rapidTimer > 0;
+    this.el.buffRapid.classList.toggle('hidden', !hasRapid);
+    if (hasRapid) this.el.buffRapidFill.style.width = Math.min(rapidTimer / 6, 1) * 100 + '%';
+
+    this.el.buffs.classList.toggle('hidden', !hasWeapon && !hasRapid);
   }
 
   setCombo(mult) {

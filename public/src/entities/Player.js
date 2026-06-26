@@ -22,6 +22,7 @@ export class Player {
     this.fireCooldown = 0;
     this.fireRate = ship ? ship.fireRate : 0.16;
     this.weaponLevel = ship ? ship.weaponLevel : 1;
+    this.baseWeaponLevel = this.weaponLevel;
     this.shipId = ship ? ship.id : 'viper';
     this.shipColor = ship ? ship.color : '#1fd9ff';
     this.shipHullColors = ship ? ship.hullColors : ['#eafcff', '#7fd6ee', '#1b6f8c'];

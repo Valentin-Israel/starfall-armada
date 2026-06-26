@@ -16,7 +16,7 @@
   <link rel="icon" type="image/svg+xml" href="/assets/icons/icon.svg" />
   <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
   <link rel="manifest" href="/manifest.webmanifest" />
-  <link rel="stylesheet" href="./styles/main.css" />
+  <link rel="stylesheet" href="./styles/main.css?v=3" />
 </head>
 <body>
   <div id="app">
@@ -54,17 +54,28 @@
         <div class="boss-bar-track"><div class="boss-bar-fill" id="boss-bar-fill"></div></div>
       </div>
 
-      <!-- Bottom ability bar -->
-      <div class="hud-bottom">
-        <div class="ability" id="ability-shield">
-          <div class="ability-icon">🛡</div>
-          <div class="ability-cd" id="ability-shield-cd"></div>
-          <span class="ability-key">SHIFT</span>
+      <!-- Bottom: active buffs + ability bar -->
+      <div class="hud-bottom-group">
+        <div id="hud-buffs" class="hud-buffs hidden">
+          <div id="buff-weapon" class="buff-chip hidden" style="--c:#1fd9ff">
+            <div class="buff-top"><span class="buff-icon">⏶</span><span id="buff-weapon-label" class="buff-label">WPN 2</span></div>
+          </div>
+          <div id="buff-rapid" class="buff-chip hidden" style="--c:#6c5cff">
+            <div class="buff-top"><span class="buff-icon">⚡</span><span class="buff-label">RAPID</span></div>
+            <div class="buff-bar"><div id="buff-rapid-fill" class="buff-bar-fill"></div></div>
+          </div>
         </div>
-        <div class="ability" id="ability-bomb">
-          <div class="ability-icon">💥</div>
-          <div class="ability-count" id="ability-bomb-count">3</div>
-          <span class="ability-key">SPACE</span>
+        <div class="hud-bottom">
+          <div class="ability" id="ability-shield">
+            <div class="ability-icon">🛡</div>
+            <div class="ability-cd" id="ability-shield-cd"></div>
+            <span class="ability-key">SHIFT</span>
+          </div>
+          <div class="ability" id="ability-bomb">
+            <div class="ability-icon">💥</div>
+            <div class="ability-count" id="ability-bomb-count">3</div>
+            <span class="ability-key">SPACE</span>
+          </div>
         </div>
       </div>
     </div>

@@ -222,27 +222,36 @@ export class Game {
     if (this.bombs <= 0) return;
     this.bombs--;
     this.audio.bomb();
-    this.renderer.addShake(24);
-    this.renderer.flash('#ffffff', 0.7);
-    this.enemyBullets.clear();
-    // Damage everything on screen.
+    const RADIUS = 220;
+    const R2 = RADIUS * RADIUS;
+    const px = this.player.x, py = this.player.y;
+    this.renderer.addShake(14);
+    this.renderer.flash('#1fd9ff', 0.35);
+    this.enemyBullets.clear();   // clear bullets everywhere — quality of life
+    // Damage enemies and asteroids only within the blast radius.
     for (const e of this.enemies) {
       if (e.active) {
-        this.particles.explosion(e.x, e.y, e.color, 1.1);
-        if (e.damage(6, this)) this._onEnemyKilled(e);
+        const dx = e.x - px, dy = e.y - py;
+        if (dx * dx + dy * dy < R2) {
+          this.particles.explosion(e.x, e.y, e.color, 1.1);
+          if (e.damage(6, this)) this._onEnemyKilled(e);
+        }
       }
     }
     for (const a of this.asteroids) {
       if (a.active) {
-        this.particles.explosion(a.x, a.y, a.color, 0.8);
-        if (a.damage(99, this)) this._onAsteroidKilled(a);
+        const dx = a.x - px, dy = a.y - py;
+        if (dx * dx + dy * dy < R2) {
+          this.particles.explosion(a.x, a.y, a.color, 0.8);
+          if (a.damage(6, this)) this._onAsteroidKilled(a);
+        }
       }
     }
     if (this.boss.active) {
-      this.boss.damage(40, this);
-      this.particles.explosion(this.boss.x, this.boss.y, '#ffcf3b', 2);
+      this.boss.damage(20, this);
+      this.particles.explosion(this.boss.x, this.boss.y, '#ffcf3b', 1.5);
     }
-    this.particles.burst(this.player.x, this.player.y, 60, { speed: 600, life: 0.6, color: '#1fd9ff', size: 4 });
+    this.particles.burst(px, py, 50, { speed: 500, life: 0.55, color: '#1fd9ff', size: 3 });
     this._syncHUD();
   }
 
@@ -335,6 +344,7 @@ export class Game {
     } else {
       this.ui.setShield(this.player.shieldCooldown, this.player.shieldCdMax, this.player.hasShield);
     }
+    this.ui.setBuffs(this.player.weaponLevel, this.player.baseWeaponLevel, this.player.rapidTimer);
   }
 
   _collide() {

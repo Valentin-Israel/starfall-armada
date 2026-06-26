@@ -302,6 +302,20 @@ html, body {
 .boss-bar-track { height: 10px; background: rgba(255,255,255,0.1); border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,59,92,0.4); }
 .boss-bar-fill { height: 100%; width: 100%; background: linear-gradient(90deg, var(--danger), var(--warn)); transition: width 0.18s ease; }
 
+.hud-bottom-group { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.hud-buffs { display: flex; gap: 8px; justify-content: center; }
+.buff-chip {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  padding: 4px 10px; border-radius: 20px;
+  background: rgba(0,0,0,0.6); border: 1px solid var(--c, #1fd9ff);
+  color: var(--c, #1fd9ff);
+  box-shadow: 0 0 8px rgba(0,0,0,0.4);
+}
+.buff-top { display: flex; align-items: center; gap: 5px; }
+.buff-icon { font-size: 12px; }
+.buff-label { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; white-space: nowrap; }
+.buff-bar { width: 100%; height: 3px; background: rgba(255,255,255,0.15); border-radius: 2px; overflow: hidden; }
+.buff-bar-fill { height: 100%; border-radius: 2px; background: var(--c, #6c5cff); transition: width 0.1s linear; }
 .hud-bottom { display: flex; justify-content: center; gap: 16px; }
 .ability {
   position: relative; width: 54px; height: 54px; border-radius: 14px;
