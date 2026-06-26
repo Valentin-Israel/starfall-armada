@@ -62,10 +62,13 @@ npm run verify
 The whole product is **one Cloudflare Worker** with Static Assets: `./public` is
 served at the edge, and `/api/*` is reserved for the Phase-3 backend (auth + Stripe).
 Deploy with `npx wrangler deploy`, or connect this repo in the Cloudflare dashboard
-(Workers Builds) for push-to-deploy. Full step-by-step — including attaching the
-custom domain, D1, secrets, and the Google/Stripe/Resend setup — is in
-[`docs/DEPLOY-CLOUDFLARE.md`](docs/DEPLOY-CLOUDFLARE.md) and
-[`docs/PHASE3-AUTH-PAYMENTS.md`](docs/PHASE3-AUTH-PAYMENTS.md).
+(Workers Builds) for push-to-deploy. **The game is live at <https://starfall.valentin.is>.**
+
+Full step-by-step guides:
+- **[`docs/CONFIGURE.md`](docs/CONFIGURE.md)** — click-by-click dashboard runbook
+  (deploy, custom domain, D1, secrets, Google OAuth, Stripe, Resend). Verified against live docs.
+- [`docs/DEPLOY-CLOUDFLARE.md`](docs/DEPLOY-CLOUDFLARE.md) — CLI deploy + custom domain.
+- [`docs/PHASE3-AUTH-PAYMENTS.md`](docs/PHASE3-AUTH-PAYMENTS.md) — auth + leaderboard + Stripe code blueprint.
 
 ---
 
