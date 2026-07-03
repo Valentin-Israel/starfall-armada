@@ -22,3 +22,8 @@ android/build/
 dist/
 .DS_Store
 *.log
+
+# Local secret files (any naming scheme) + IDE folders
+.env
+.env.*
+.idea/
