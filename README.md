@@ -4,7 +4,7 @@
 
 > Hold the line against the swarm. Chain kills, upgrade your guns, survive the bosses, top the leaderboard.
 
-![Starfall icon](assets/icons/icon-192.png)
+![Starfall icon](public/assets/icons/icon.svg)
 
 ---
 
