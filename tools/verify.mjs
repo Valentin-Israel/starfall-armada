@@ -18,7 +18,7 @@ page.on('console', (m) => { if (m.type() === 'error') errors.push('console.error
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
 
 // Track icon / manifest delivery so a broken favicon is caught, not just JS.
-const ICONS = ['/favicon.ico', '/assets/icons/icon.svg', '/assets/icons/apple-touch-icon.png', '/manifest.webmanifest', '/assets/icons/icon-192.png'];
+const ICONS = ['/favicon.ico', '/assets/icons/favicon-32x32.png', '/assets/icons/apple-touch-icon.png', '/manifest.webmanifest', '/assets/icons/android-chrome-192x192.png', '/assets/icons/icon.png'];
 const matchIcon = (u) => ICONS.find((p) => u.endsWith(p));
 page.on('requestfailed', (r) => {
   const p = matchIcon(r.url());
