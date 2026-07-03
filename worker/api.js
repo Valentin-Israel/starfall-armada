@@ -1,7 +1,7 @@
 // Application API (everything under /api/ except /api/auth/*, which better-auth owns).
 import Stripe from 'stripe';
 import { createAuth } from './auth.js';
-import { PRODUCTS, PRODUCT_BY_KEY, priceIdFor, publicCatalog } from './products.js';
+import { PRODUCTS, PRODUCT_BY_KEY, priceIdFor, publicCatalog, matchPricesByName } from './products.js';
 import * as db from './db.js';
 
 const json = (data, status = 200) =>
@@ -21,6 +21,38 @@ const maxPlausibleScore = (wave) => wave * 50000 + 200000;
 function getStripe(env) {
   // No httpClient needed — stripe-node auto-detects fetch on Workers.
   return new Stripe(env.STRIPE_SECRET_KEY, { appInfo: { name: 'starfall-armada' } });
+}
+
+// ---- price resolution ----
+// STRIPE_PRICE_* env vars win when set; anything missing self-configures by
+// listing active Stripe prices and matching them to product names ("Starter
+// Credits", "Battle Pass", …). So the store needs ZERO price configuration —
+// creating the products in Stripe is enough. Cached per isolate for 5 min.
+let _priceCache = { at: 0, map: null };
+const PRICE_TTL_MS = 5 * 60 * 1000;
+
+async function resolvePrices(env) {
+  const fromEnv = {};
+  let missing = false;
+  for (const p of PRODUCTS) {
+    const id = priceIdFor(p, env);
+    if (id) fromEnv[p.key] = id;
+    else missing = true;
+  }
+  if (!missing || !env.STRIPE_SECRET_KEY) return fromEnv;
+
+  const now = Date.now();
+  if (!_priceCache.map || now - _priceCache.at > PRICE_TTL_MS) {
+    try {
+      const list = await getStripe(env).prices.list({
+        active: true, limit: 100, expand: ['data.product'],
+      });
+      _priceCache = { at: now, map: matchPricesByName(PRODUCTS, list.data) };
+    } catch {
+      return fromEnv; // Stripe unreachable — env-configured products still work
+    }
+  }
+  return { ..._priceCache.map, ...fromEnv }; // env overrides auto-matched
 }
 
 async function requireUser(request, env, ctx) {
@@ -46,6 +78,9 @@ export async function handleApi(request, env, ctx, url) {
         dbStatus = 'bound-but-no-schema';
       }
     }
+    // Price status per product: 'env' (explicit var), 'stripe-auto'
+    // (matched live by product name), or false (not purchasable).
+    const resolved = await resolvePrices(env);
     return json({
       ok: true,
       app: 'starfall-armada',
@@ -58,14 +93,16 @@ export async function handleApi(request, env, ctx, url) {
         resend: !!env.RESEND_API_KEY,
         stripeSecret: !!env.STRIPE_SECRET_KEY,
         stripeWebhook: !!env.STRIPE_WEBHOOK_SECRET,
-        prices: Object.fromEntries(PRODUCTS.map((p) => [p.key, !!env[p.priceEnv]])),
+        prices: Object.fromEntries(PRODUCTS.map((p) =>
+          [p.key, env[p.priceEnv] ? 'env' : resolved[p.key] ? 'stripe-auto' : false])),
       },
     });
   }
 
-  // Public store catalog (only products whose Stripe price id is configured).
+  // Public store catalog (products with an env-configured OR auto-matched price).
   if (pathname === '/api/store' && method === 'GET') {
-    return json({ products: publicCatalog(env) });
+    const prices = await resolvePrices(env);
+    return json({ products: publicCatalog(prices) });
   }
 
   // Current user + profile (credits, owned skins, pass status). 200 with user:null if signed out.
@@ -114,7 +151,8 @@ export async function handleApi(request, env, ctx, url) {
     const body = await request.json().catch(() => ({}));
     const product = PRODUCT_BY_KEY[body.product];
     if (!product) return err('Unknown product');
-    const price = priceIdFor(product, env);
+    const prices = await resolvePrices(env);
+    const price = prices[product.key];
     if (!price) return err('Product not available', 409);
 
     const stripe = getStripe(env);
