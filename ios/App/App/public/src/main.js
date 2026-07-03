@@ -19,6 +19,16 @@ const online = new Online({ ui, audio });
 game.online = online;
 online.init();
 
+// Native deep link: after Google sign-in in the system browser, the app is
+// reopened via starfall://auth?token=… — exchange the token for a session.
+const CapApp = window.Capacitor?.Plugins?.App;
+if (CapApp && CapApp.addListener) {
+  CapApp.addListener('appUrlOpen', ({ url }) => {
+    const m = /^starfall:\/\/auth\?token=([^&]+)/.exec(url || '');
+    if (m) online.completeNativeAuth(decodeURIComponent(m[1]));
+  });
+}
+
 // Unlock the Web Audio context on the first user gesture (autoplay policy).
 const unlock = () => {
   audio.unlock();

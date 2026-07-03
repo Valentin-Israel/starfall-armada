@@ -1,7 +1,14 @@
 // Service worker — caches the app shell for instant loads and offline play.
-// NOTE: bump CACHE on ANY asset/icon change, or returning visitors keep the old
-// cached copy forever (this SW also runtime-caches same-origin GETs).
-const CACHE = 'starfall-v7';
+//
+// Caching strategy is split by what the resource IS, because getting this wrong
+// once bricked returning visitors: code (HTML/JS/CSS) is served NETWORK-FIRST so
+// every deploy reaches users on their next load, while binary assets (icons,
+// images, fonts) use stale-while-revalidate so they stay fast AND self-update in
+// the background. Nothing is pinned "cache-first forever" anymore — an earlier
+// version did exactly that for JS modules and left returning users running stale
+// JavaScript against a fresh page (store/leaderboard/game all dead) until the
+// cache name changed. Do not reintroduce cache-first for code.
+const CACHE = 'starfall-v8';
 const ASSETS = [
   '/',
   '/index.html',
@@ -50,44 +57,63 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+// Network-first: fetch fresh, fall back to cache only when offline. Used for
+// anything whose contents change between deploys (documents + code).
+function networkFirst(request, fallbackToIndex) {
+  return fetch(request)
+    .then((res) => {
+      if (res.ok) {
+        const copy = res.clone();
+        caches.open(CACHE).then((c) => c.put(request, copy));
+      }
+      return res;
+    })
+    .catch(() =>
+      caches.match(request).then((c) => c || (fallbackToIndex ? caches.match('/index.html') : undefined)),
+    );
+}
+
+// Stale-while-revalidate: serve cache instantly for speed, refresh in the
+// background so the NEXT load is current. Used for binary assets where a
+// one-load-stale icon is harmless but "pinned forever" is not.
+function staleWhileRevalidate(request) {
+  return caches.match(request).then((cached) => {
+    const network = fetch(request)
+      .then((res) => {
+        if (res.ok) {
+          const copy = res.clone();
+          caches.open(CACHE).then((c) => c.put(request, copy));
+        }
+        return res;
+      })
+      .catch(() => cached);
+    return cached || network;
+  });
+}
+
+// Treat as "code" anything that defines app behavior or layout — must never go
+// stale. Everything else same-origin (icons, images, fonts) is a binary asset.
+const CODE_RE = /\.(?:js|mjs|css|html|json|webmanifest)$/i;
+
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
+
   // Never serve API responses from cache.
   if (url.origin === location.origin && url.pathname.startsWith('/api/')) return;
+  // Don't touch cross-origin requests — let the network handle them.
+  if (url.origin !== location.origin) return;
 
-  // Page loads: NETWORK-FIRST so deploys/fixes always reach users immediately;
-  // the cache is only the offline fallback. (Cache-first pages once pinned a
-  // broken state until the SW version changed.)
+  // Page navigations and code: network-first so deploys always reach users.
   if (e.request.mode === 'navigate') {
-    e.respondWith(
-      fetch(e.request)
-        .then((res) => {
-          if (res.ok) {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(e.request, copy));
-          }
-          return res;
-        })
-        .catch(() => caches.match(e.request).then((c) => c || caches.match('/index.html'))),
-    );
+    e.respondWith(networkFirst(e.request, true));
+    return;
+  }
+  if (CODE_RE.test(url.pathname)) {
+    e.respondWith(networkFirst(e.request, false));
     return;
   }
 
-  // Static assets: cache-first (fast), network fill on miss.
-  e.respondWith(
-    caches.match(e.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(e.request)
-        .then((res) => {
-          // Runtime-cache same-origin successful responses.
-          if (res.ok && url.origin === location.origin) {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(e.request, copy));
-          }
-          return res;
-        })
-        .catch(() => caches.match('/index.html'));
-    }),
-  );
+  // Binary assets: fast from cache, refreshed in the background.
+  e.respondWith(staleWhileRevalidate(e.request));
 });
