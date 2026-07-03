@@ -75,29 +75,9 @@ function packIco(images) {
   return Buffer.concat([header, dir, ...chunks]);
 }
 
-// PNGs referenced by the manifest / <head>.
-const targets = [
-  { name: 'icon-192.png', size: 192, src: svg },
-  { name: 'icon-512.png', size: 512, src: svg },
-  { name: 'icon-maskable-512.png', size: 512, src: maskableSvg },
-  { name: 'apple-touch-icon.png', size: 180, src: svg },
-];
-for (const t of targets) {
-  await renderPng(t.src, t.size, path.join(ICON_DIR, t.name));
-  console.log('✓ wrote assets/icons/' + t.name, `(${t.size}²)`);
-}
-
-// favicon.ico — multi-resolution (16/32/48) at the well-known root path.
-const icoSizes = [16, 32, 48];
-const icoImages = [];
-for (const size of icoSizes) {
-  const p = path.join(tmp, `fav-${size}.png`);
-  await renderPng(svg, size, p);
-  icoImages.push({ size, data: await fs.readFile(p) });
-}
-const icoPath = path.join(PUBLIC, 'favicon.ico');
-await fs.writeFile(icoPath, packIco(icoImages));
-console.log('✓ wrote favicon.ico (16/32/48 multi-res)');
+// NOTE: The web icons in public/assets/icons and public/favicon.ico are
+// HAND-CURATED (uploaded manually) — this tool must NOT touch them anymore.
+// It only produces the mobile source assets below (splash / adaptive layers).
 
 // ---- Mobile source assets for `npx capacitor-assets generate` ----
 // Convention (capacitorjs.com/docs/guides/splash-screens-and-icons):
