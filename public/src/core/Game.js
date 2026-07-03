@@ -229,21 +229,33 @@ export class Game {
     if (this.bombs <= 0) return;
     this.bombs--;
     this.audio.bomb();
-    this.renderer.addShake(24);
-    this.renderer.flash('#ffffff', 0.7);
-    this.enemyBullets.clear();
-    // Damage everything on screen.
+    const RADIUS = 160;
+    const R2 = RADIUS * RADIUS;
+    const px = this.player.x, py = this.player.y;
+    this.renderer.addShake(14);
+    this.renderer.flash('#1fd9ff', 0.35);
+    // Clear enemy bullets inside blast radius only.
+    this.enemyBullets.forEachActive((b) => {
+      const dx = b.x - px, dy = b.y - py;
+      if (dx * dx + dy * dy < R2) b.active = false;
+    });
+    // Damage enemies within blast radius.
     for (const e of this.enemies) {
-      if (e.active) {
+      if (!e.active) continue;
+      const dx = e.x - px, dy = e.y - py;
+      if (dx * dx + dy * dy < R2) {
         this.particles.explosion(e.x, e.y, e.color, 1.1);
         if (e.damage(6, this)) this._onEnemyKilled(e);
       }
     }
     if (this.boss.active) {
-      this.boss.damage(40, this);
-      this.particles.explosion(this.boss.x, this.boss.y, '#ffcf3b', 2);
+      const dx = this.boss.x - px, dy = this.boss.y - py;
+      if (dx * dx + dy * dy < R2 * 4) {
+        this.boss.damage(20, this);
+        this.particles.explosion(this.boss.x, this.boss.y, '#ffcf3b', 1.5);
+      }
     }
-    this.particles.burst(this.player.x, this.player.y, 60, { speed: 600, life: 0.6, color: '#1fd9ff', size: 4 });
+    this.particles.burst(px, py, 50, { speed: 500, life: 0.55, color: '#1fd9ff', size: 3 });
     this._syncHUD();
   }
 
