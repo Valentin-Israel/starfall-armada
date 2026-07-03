@@ -72,6 +72,19 @@ if ('serviceWorker' in navigator) {
       caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
     }
   } else {
+    // If the page is already controlled by an SW, this is a returning visit:
+    // when a NEW service worker activates and claims control, reload once so the
+    // user immediately runs the fresh code instead of a stale cached build.
+    // (Guarded against loops; skipped on first-ever visit where controller is
+    // null, so brand-new visitors never see an extra reload.)
+    if (navigator.serviceWorker.controller) {
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        location.reload();
+      });
+    }
     addEventListener('load', () => {
       navigator.serviceWorker.register('./sw.js').catch(() => {/* offline support is best-effort */});
     });
