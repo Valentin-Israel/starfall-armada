@@ -196,9 +196,9 @@ export class Online {
       body.querySelectorAll('[data-skin]').forEach((b) =>
         b.addEventListener('click', () => { this.audio.uiClick(); this.setSkin(b.dataset.skin); this._renderAccount(); }));
     } else {
-      // Google works on web AND in the app: capacitor.config allows navigation
-      // to the Google domains, so the OAuth flow stays inside the app WebView
-      // (same session/cookies) instead of bouncing out to Safari.
+      // Google works on web AND in the app. In the native app the OAuth runs in
+      // an in-app ASWebAuthenticationSession (Apple consent popup + Safari SSO),
+      // never bouncing out to the external Safari app; on web it's a redirect.
       body.innerHTML = `
         <p class="acct-intro">Sign in to save your progress, climb the global leaderboard and keep purchases across devices.</p>
         <button class="btn btn-google" id="acct-google">${GOOGLE_G}<span>Continue with Google</span></button>
@@ -228,15 +228,26 @@ export class Online {
             btn.querySelector('span').textContent = 'Continue with Google';
           }
         };
-        // Native: Google forbids OAuth in embedded WebViews, so the flow runs
-        // in the SYSTEM browser and returns via /auth-return → starfall://auth
-        // deep link (handled in main.js). The WebView stays on this screen —
-        // re-enable the button so a retry is possible.
-        api.signInGoogle(native ? '/auth-return' : '/').catch((err) => {
-          reset();
-          this._msg(err.message);
-        });
-        if (native) setTimeout(reset, 6000);
+        // Native: OAuth runs in an in-app ASWebAuthenticationSession (see
+        // api.signInGoogle). It resolves with the one-time token, which we verify
+        // to establish the session. If the ASWebAuth plugin isn't present we fall
+        // back to the system browser + /auth-return → starfall://auth deep link
+        // (handled in main.js); that path resolves to null (page redirects away).
+        const usePlugin = native && !!(window.Capacitor?.Plugins?.EphemeralWebAuth);
+        api.signInGoogle(native ? '/auth-return' : '/')
+          .then((token) => {
+            if (token) return this.completeNativeAuth(token); // verify + refresh + re-enable
+            reset();
+          })
+          .catch((err) => {
+            reset();
+            // Swiping the Apple sheet away is not an error — no toast.
+            if (err && (err.code === 'USER_CANCELLED' || /cancel/i.test(err.message || ''))) return;
+            this._msg(err.message || 'Sign-in failed — please try again.');
+          });
+        // Only the external-Safari fallback needs a timed re-enable; the plugin
+        // path settles its own promise (success / cancel / error).
+        if (native && !usePlugin) setTimeout(reset, 6000);
       });
       $('acct-signin').addEventListener('click', () => this._emailAuth(false));
       $('acct-signup').addEventListener('click', () => this._emailAuth(true));

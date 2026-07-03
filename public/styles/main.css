@@ -19,8 +19,12 @@
   --panel-border: rgba(31, 217, 255, 0.28);
   --shadow-glow: 0 0 40px rgba(31, 217, 255, 0.25);
   --font: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  /* With ios.contentInset "never" the WebView is edge-to-edge and env() is
+     authoritative. Floor the values so HUD/menus never sit under the notch or
+     home indicator during WebKit's brief late-inset window (env() can momentarily
+     report 0). Non-notch devices just get a small, harmless base inset. */
+  --safe-top: max(env(safe-area-inset-top), 12px);
+  --safe-bottom: max(env(safe-area-inset-bottom), 20px);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }

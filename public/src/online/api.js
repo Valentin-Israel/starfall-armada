@@ -33,7 +33,22 @@ export const api = {
       method: 'POST',
       body: { provider: 'google', callbackURL },
     });
-    if (r && r.url) location.href = r.url;
+    if (!(r && r.url)) return null;
+    // Native: run the OAuth in an in-app ASWebAuthenticationSession (shows the
+    // Apple "Starfall möchte sich bei google.com anmelden" consent popup + shares
+    // Safari SSO). The session itself captures the starfall://auth?token=… redirect
+    // and hands the callback URL straight back — no external Safari, no deep link.
+    // Returns the one-time token for the caller to verify.
+    const WebAuth = window.Capacitor?.Plugins?.EphemeralWebAuth;
+    if (window.__isNativeApp && WebAuth) {
+      const { url } = await WebAuth.signIn({ authUrl: r.url, callbackScheme: 'starfall' });
+      const m = /[?&]token=([^&]+)/.exec(url || '');
+      return m ? decodeURIComponent(m[1]) : null;
+    }
+    // Web (and native fallback if the plugin isn't registered): full-page redirect.
+    // The native fallback returns via /auth-return → starfall://auth deep link.
+    location.href = r.url;
+    return null;
   },
   // Native OAuth handoff: exchange the one-time token minted in the system
   // browser for a session in the app WebView (verify sets the cookie).
