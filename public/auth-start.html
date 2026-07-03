@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>Signing in to Starfall…</title>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <style>
+    body{margin:0;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+      background:radial-gradient(120% 80% at 50% -10%,#0b1640,#04060f 45%,#02030a 100%);color:#e8edf6;
+      font:16px/1.6 "Segoe UI",system-ui,sans-serif;text-align:center;padding:24px}
+    .spin{width:42px;height:42px;border:3px solid rgba(31,217,255,.25);border-top-color:#1fd9ff;border-radius:50%;
+      animation:r 1s linear infinite}
+    @keyframes r{to{transform:rotate(360deg)}}
+    p{color:#9aa6b8;max-width:420px}
+    .err{color:#ff8ba0}
+  </style>
+</head>
+<body>
+  <div class="spin" id="spin"></div>
+  <h2 id="title">Connecting to Google…</h2>
+  <p id="hint">One moment.</p>
+  <script>
+    // Native-app OAuth INITIATION. This page runs inside the in-app
+    // ASWebAuthenticationSession browser. Starting the flow HERE (rather than in
+    // the app WebView) is essential: better-auth sets the OAuth `state` cookie on
+    // this POST, and Google's callback reads it back — both must happen in THIS
+    // browser's cookie jar. Initiating in the app WebView set the cookie in a
+    // different jar, so the callback failed with state_mismatch.
+    (async () => {
+      const params = new URLSearchParams(location.search);
+      const callbackURL = params.get('cb') || '/auth-return';
+      try {
+        const res = await fetch('/api/auth/sign-in/social', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ provider: 'google', callbackURL }),
+        });
+        const data = await res.json().catch(() => null);
+        if (res.ok && data && data.url) {
+          location.href = data.url; // → Google (state cookie now lives in this jar)
+          return;
+        }
+        throw new Error((data && (data.message || data.error)) || 'could not start sign-in');
+      } catch (e) {
+        document.getElementById('spin').style.display = 'none';
+        const title = document.getElementById('title');
+        title.textContent = 'Could not start sign-in';
+        title.className = 'err';
+        document.getElementById('hint').textContent =
+          'Please go back to the Starfall app and try again.';
+      }
+    })();
+  </script>
+</body>
+</html>
