@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#02030a" />
+  <meta name="description" content="Starfall: Armada — a fast, polished arcade space shooter. Survive the swarm, beat the bosses, top the leaderboard." />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>Starfall: Armada</title>
+  <!-- Icons — order matters. .ico first with sizes="any" prevents Chromium's
+       ICO+SVG double-download; the .ico fallback covers Safari, which does not
+       render SVG tab favicons. (verified against MDN / evilmartians, 2026) -->
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="/assets/icons/icon.svg" />
+  <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="stylesheet" href="./styles/main.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Game canvas -->
+    <canvas id="game" aria-label="Game viewport"></canvas>
+
+    <!-- In-game HUD (canvas overlay) -->
+    <div id="hud" class="hud hidden" aria-hidden="true">
+      <div class="hud-top">
+        <div class="hud-left">
+          <div class="hud-score">
+            <span class="hud-label">SCORE</span>
+            <span id="hud-score-value" class="hud-value">0</span>
+          </div>
+          <div class="hud-combo" id="hud-combo">
+            <span id="hud-combo-value">x1</span>
+          </div>
+        </div>
+        <div class="hud-center">
+          <div class="hud-wave">
+            <span class="hud-label">WAVE</span>
+            <span id="hud-wave-value" class="hud-value">1</span>
+          </div>
+        </div>
+        <div class="hud-right">
+          <div class="hud-lives" id="hud-lives" aria-label="Lives"></div>
+          <button id="btn-pause" class="hud-pause" aria-label="Pause">II</button>
+        </div>
+      </div>
+
+      <!-- Boss health bar -->
+      <div class="boss-bar hidden" id="boss-bar">
+        <div class="boss-bar-name" id="boss-bar-name">DREADNOUGHT</div>
+        <div class="boss-bar-track"><div class="boss-bar-fill" id="boss-bar-fill"></div></div>
+      </div>
+
+      <!-- Bottom ability bar -->
+      <div class="hud-bottom">
+        <div class="ability" id="ability-shield">
+          <div class="ability-icon">🛡</div>
+          <div class="ability-cd" id="ability-shield-cd"></div>
+          <span class="ability-key">SHIFT</span>
+        </div>
+        <div class="ability" id="ability-bomb">
+          <div class="ability-icon">💥</div>
+          <div class="ability-count" id="ability-bomb-count">3</div>
+          <span class="ability-key">SPACE</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile touch controls -->
+    <div id="touch-controls" class="touch-controls hidden" aria-hidden="true">
+      <div class="touch-stick" id="touch-stick">
+        <div class="touch-stick-base"></div>
+        <div class="touch-stick-knob" id="touch-stick-knob"></div>
+      </div>
+      <div class="touch-buttons">
+        <button class="touch-btn touch-bomb" id="touch-bomb">💥</button>
+        <button class="touch-btn touch-shield" id="touch-shield">🛡</button>
+      </div>
+    </div>
+
+    <!-- ============ SCREENS ============ -->
+
+    <!-- Boot / loading -->
+    <div class="screen screen-boot" id="screen-boot">
+      <div class="boot-logo">
+        <div class="boot-mark"></div>
+        <h1 class="boot-title">STARFALL</h1>
+        <p class="boot-sub">A R M A D A</p>
+      </div>
+      <div class="boot-bar"><div class="boot-bar-fill" id="boot-bar-fill"></div></div>
+    </div>
+
+    <!-- Main menu -->
+    <div class="screen screen-menu hidden" id="screen-menu">
+      <div class="menu-bg-glow"></div>
+      <div class="menu-content">
+        <div class="title-wrap">
+          <h1 class="game-title">STARFALL<span class="title-accent">: ARMADA</span></h1>
+          <p class="game-tag">Hold the line against the swarm.</p>
+        </div>
+        <div class="menu-buttons">
+          <button class="btn btn-primary" id="btn-play">▶ PLAY</button>
+          <button class="btn" id="btn-store">⬡ STORE</button>
+          <button class="btn" id="btn-scores">LEADERBOARD</button>
+          <button class="btn" id="btn-account">ACCOUNT</button>
+          <button class="btn" id="btn-how">HOW TO PLAY</button>
+          <button class="btn" id="btn-settings">SETTINGS</button>
+        </div>
+        <div class="menu-best">
+          <span>BEST</span>
+          <strong id="menu-best-value">0</strong>
+        </div>
+      </div>
+      <!-- Account chip (filled by Online controller when signed in) -->
+      <button class="account-chip hidden" id="account-chip" aria-label="Account">
+        <span class="chip-name" id="chip-name">PILOT</span>
+        <span class="chip-credits"><span id="chip-credits">0</span> cr</span>
+      </button>
+      <div class="menu-footer">v1.0 · made for the void · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/impressum">Impressum</a></div>
+    </div>
+
+    <!-- How to play -->
+    <div class="screen screen-modal hidden" id="screen-how">
+      <div class="modal-card">
+        <h2>HOW TO PLAY</h2>
+        <ul class="how-list">
+          <li><span class="how-key">WASD / ◀▲▼▶</span> <span>Fly your ship</span></li>
+          <li><span class="how-key">MOUSE / TOUCH</span> <span>Drag to fly — fire is automatic</span></li>
+          <li><span class="how-key">SHIFT</span> <span>Raise energy shield (cooldown)</span></li>
+          <li><span class="how-key">SPACE</span> <span>Detonate a screen-clearing bomb</span></li>
+          <li><span class="how-key">P / ESC</span> <span>Pause</span></li>
+        </ul>
+        <p class="how-note">Chain kills for a score multiplier. Grab power-ups to upgrade your guns, restore shields and earn bombs. Survive the boss every fifth wave.</p>
+        <button class="btn btn-primary" data-close>BACK</button>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div class="screen screen-modal hidden" id="screen-scores">
+      <div class="modal-card">
+        <h2>LEADERBOARD</h2>
+        <div class="tabs">
+          <button class="tab is-active" id="tab-local" data-tab="local">LOCAL</button>
+          <button class="tab" id="tab-global" data-tab="global">GLOBAL</button>
+        </div>
+        <ol class="score-list" id="score-list"></ol>
+        <ol class="score-list hidden" id="score-list-global"></ol>
+        <button class="btn btn-primary" data-close>BACK</button>
+      </div>
+    </div>
+
+    <!-- Account / sign-in -->
+    <div class="screen screen-modal hidden" id="screen-account">
+      <div class="modal-card" id="account-card">
+        <h2>ACCOUNT</h2>
+        <div id="account-body"><!-- filled by Online controller --></div>
+        <button class="btn btn-primary" data-close>BACK</button>
+      </div>
+    </div>
+
+    <!-- Store -->
+    <div class="screen screen-modal hidden" id="screen-store">
+      <div class="modal-card">
+        <h2>STORE</h2>
+        <div class="store-balance" id="store-balance"></div>
+        <div id="store-body" class="store-grid"><!-- filled by Online controller --></div>
+        <button class="btn btn-primary" data-close>BACK</button>
+      </div>
+    </div>
+
+    <!-- Settings -->
+    <div class="screen screen-modal hidden" id="screen-settings">
+      <div class="modal-card">
+        <h2>SETTINGS</h2>
+        <div class="setting-row">
+          <label for="set-sound">Sound effects</label>
+          <button class="toggle" id="set-sound" role="switch" aria-checked="true"></button>
+        </div>
+        <div class="setting-row">
+          <label for="set-music">Music</label>
+          <button class="toggle" id="set-music" role="switch" aria-checked="true"></button>
+        </div>
+        <div class="setting-row">
+          <label for="set-shake">Screen shake</label>
+          <button class="toggle" id="set-shake" role="switch" aria-checked="true"></button>
+        </div>
+        <div class="setting-row">
+          <label for="set-quality">High quality FX</label>
+          <button class="toggle" id="set-quality" role="switch" aria-checked="true"></button>
+        </div>
+        <button class="btn btn-danger" id="set-reset">RESET LEADERBOARD</button>
+        <button class="btn btn-primary" data-close>BACK</button>
+      </div>
+    </div>
+
+    <!-- Pause -->
+    <div class="screen screen-modal hidden" id="screen-pause">
+      <div class="modal-card">
+        <h2>PAUSED</h2>
+        <button class="btn btn-primary" id="btn-resume">▶ RESUME</button>
+        <button class="btn" id="btn-restart">RESTART</button>
+        <button class="btn" id="btn-quit">QUIT TO MENU</button>
+      </div>
+    </div>
+
+    <!-- Game over -->
+    <div class="screen screen-modal hidden" id="screen-over">
+      <div class="modal-card">
+        <h2 id="over-title">GAME OVER</h2>
+        <div class="over-stats">
+          <div class="over-score">
+            <span>SCORE</span>
+            <strong id="over-score">0</strong>
+          </div>
+          <div class="over-meta">
+            <div><span>WAVE</span><strong id="over-wave">1</strong></div>
+            <div><span>KILLS</span><strong id="over-kills">0</strong></div>
+            <div><span>BEST COMBO</span><strong id="over-combo">x1</strong></div>
+          </div>
+        </div>
+        <div class="over-newbest hidden" id="over-newbest">★ NEW RECORD ★</div>
+        <div class="over-nameentry hidden" id="over-nameentry">
+          <input id="over-name" maxlength="12" placeholder="YOUR CALLSIGN" autocomplete="off" />
+        </div>
+        <button class="btn btn-revive hidden" id="btn-revive">↺ REVIVE · 200 cr</button>
+        <button class="btn btn-primary" id="btn-again">▶ PLAY AGAIN</button>
+        <button class="btn" id="btn-over-menu">MENU</button>
+      </div>
+    </div>
+
+    <!-- Tap to start (audio unlock) -->
+    <div class="screen screen-tap hidden" id="screen-tap">
+      <p>TAP TO ENGAGE</p>
+    </div>
+  </div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

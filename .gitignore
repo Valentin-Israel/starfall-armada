@@ -4,7 +4,7 @@ package-lock.json
 
 # Capacitor: native projects ARE committed (Capacitor treats them as source).
 # Ignore only the generated copies of the web assets/config inside them.
-ios/App/App/public/
+# ios/App/App/public/ — committed so Xcode Cloud can build without scripts
 ios/App/output/
 ios/DerivedData/
 android/app/src/main/assets/public/
