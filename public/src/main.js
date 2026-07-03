@@ -29,6 +29,47 @@ if (CapApp && CapApp.addListener) {
   });
 }
 
+// In-app web view for the legal pages. In the native app a plain link would
+// navigate the whole game WebView away with no way back, so we open Privacy/
+// Terms/Impressum in a same-origin iframe overlay instead. On the web the
+// links navigate normally (real URL + browser back).
+const LEGAL_TITLES = { '/privacy': 'Privacy', '/terms': 'Terms', '/impressum': 'Impressum' };
+const webviewScreen = document.getElementById('screen-webview');
+const webviewFrame = document.getElementById('webview-frame');
+const webviewTitle = document.getElementById('webview-title');
+
+function openWebView(path, title) {
+  webviewTitle.textContent = title || 'Info';
+  webviewFrame.src = path;
+  webviewScreen.classList.remove('hidden');
+  webviewScreen.setAttribute('aria-hidden', 'false');
+}
+function closeWebView() {
+  webviewScreen.classList.add('hidden');
+  webviewScreen.setAttribute('aria-hidden', 'true');
+  webviewFrame.src = 'about:blank'; // stop the page + free memory
+}
+
+document.addEventListener('click', (e) => {
+  const a = e.target.closest && e.target.closest('a[href]');
+  if (a) {
+    let path;
+    try { path = new URL(a.getAttribute('href'), location.href).pathname; } catch { path = null; }
+    if (path && LEGAL_TITLES[path] && window.__isNativeApp) {
+      e.preventDefault();
+      openWebView(path, LEGAL_TITLES[path]);
+      return;
+    }
+  }
+  // Backdrop tap (outside the card) or the ✕ button closes the view.
+  if (e.target.id === 'screen-webview' || (e.target.closest && e.target.closest('#webview-close'))) {
+    closeWebView();
+  }
+});
+addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !webviewScreen.classList.contains('hidden')) closeWebView();
+});
+
 // Unlock the Web Audio context on the first user gesture (autoplay policy).
 const unlock = () => {
   audio.unlock();
