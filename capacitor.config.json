@@ -1,8 +1,9 @@
 {
   "appId": "is.valentin.starfall",
-  "appName": "Starfall: Armada",
+  "appName": "Starfall",
   "webDir": "public",
   "backgroundColor": "#02030aff",
+  "appendUserAgent": "StarfallApp",
   "server": {
     "url": "https://starfall.valentin.is",
     "androidScheme": "https"
@@ -10,7 +11,7 @@
   "ios": {
     "contentInset": "always",
     "backgroundColor": "#02030aff",
-    "limitsNavigationsToAppBoundDomains": true
+    "scrollEnabled": false
   },
   "android": {
     "backgroundColor": "#02030aff",

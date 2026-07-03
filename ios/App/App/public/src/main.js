@@ -44,11 +44,28 @@ async function boot() {
 }
 boot();
 
-// Register the service worker for offline / installable PWA support.
+// Native (Capacitor) detection: bridge global, or the UA marker from capacitor.config.
+const isNativeApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())
+  || /StarfallApp/.test(navigator.userAgent);
+window.__isNativeApp = isNativeApp;
+
+// Service worker: web only. Inside the app WebView the site is loaded live
+// anyway (server.url), and a stuck SW cache once bricked the app with a
+// persistent black screen — so in native we not only skip registration but
+// actively remove any leftover SW + caches (self-healing for affected installs).
 if ('serviceWorker' in navigator) {
-  addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {/* offline support is best-effort */});
-  });
+  if (isNativeApp) {
+    navigator.serviceWorker.getRegistrations()
+      .then((regs) => regs.forEach((r) => r.unregister()))
+      .catch(() => {});
+    if (window.caches && caches.keys) {
+      caches.keys().then((keys) => keys.forEach((k) => caches.delete(k))).catch(() => {});
+    }
+  } else {
+    addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {/* offline support is best-effort */});
+    });
+  }
 }
 
 // Expose for debugging in the console.

@@ -1,7 +1,7 @@
 // Service worker — caches the app shell for instant loads and offline play.
 // NOTE: bump CACHE on ANY asset/icon change, or returning visitors keep the old
 // cached copy forever (this SW also runtime-caches same-origin GETs).
-const CACHE = 'starfall-v5';
+const CACHE = 'starfall-v6';
 const ASSETS = [
   '/',
   '/index.html',
@@ -54,6 +54,26 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   // Never serve API responses from cache.
   if (url.origin === location.origin && url.pathname.startsWith('/api/')) return;
+
+  // Page loads: NETWORK-FIRST so deploys/fixes always reach users immediately;
+  // the cache is only the offline fallback. (Cache-first pages once pinned a
+  // broken state until the SW version changed.)
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request)
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE).then((c) => c.put(e.request, copy));
+          }
+          return res;
+        })
+        .catch(() => caches.match(e.request).then((c) => c || caches.match('/index.html'))),
+    );
+    return;
+  }
+
+  // Static assets: cache-first (fast), network fill on miss.
   e.respondWith(
     caches.match(e.request).then((cached) => {
       if (cached) return cached;
