@@ -27,14 +27,18 @@ export const api = {
     req('/api/auth/sign-up/email', { method: 'POST', body: { name, email, password } }),
   signInEmail: (email, password) =>
     req('/api/auth/sign-in/email', { method: 'POST', body: { email, password } }),
-  async signInGoogle() {
+  async signInGoogle(callbackURL = '/') {
     // better-auth returns a URL to redirect the browser to Google.
     const r = await req('/api/auth/sign-in/social', {
       method: 'POST',
-      body: { provider: 'google', callbackURL: '/' },
+      body: { provider: 'google', callbackURL },
     });
     if (r && r.url) location.href = r.url;
   },
+  // Native OAuth handoff: exchange the one-time token minted in the system
+  // browser for a session in the app WebView (verify sets the cookie).
+  verifyOneTimeToken: (token) =>
+    req('/api/auth/one-time-token/verify', { method: 'POST', body: { token } }),
   signOut: () => req('/api/auth/sign-out', { method: 'POST' }),
 
   // ---- app ----

@@ -2,6 +2,7 @@
 // (not module scope), so we build per request. Uses the kysely-d1 dialect
 // against D1 (the documented D1 path) + Google sign-in + Resend email.
 import { betterAuth } from 'better-auth';
+import { oneTimeToken } from 'better-auth/plugins/one-time-token';
 import { D1Dialect } from 'kysely-d1';
 import { Resend } from 'resend';
 
@@ -58,5 +59,10 @@ export function createAuth(env, ctx) {
     // per-request instance means the default in-memory counter never persists.
     // better-auth applies stricter built-in limits to sign-in/sign-up/reset.
     rateLimit: { enabled: true, storage: 'database' },
+    // Native-app OAuth handoff: Google forbids OAuth in embedded WebViews
+    // (403 disallowed_useragent), so the app signs in via the SYSTEM browser
+    // and hands the session back through a short-lived one-time token
+    // (generate in browser -> deep link starfall://auth -> verify in app).
+    plugins: [oneTimeToken()],
   });
 }

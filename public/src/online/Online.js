@@ -75,6 +75,20 @@ export class Online {
     }
   }
 
+  // Native OAuth handoff: called from main.js when the app is opened via the
+  // starfall://auth?token=… deep link (after Google sign-in in the browser).
+  async completeNativeAuth(token) {
+    try {
+      await api.verifyOneTimeToken(token);
+      await this.refresh();
+      this._googleBusy = false;
+      this.openAccount(); // show the signed-in profile as confirmation
+    } catch {
+      this.openAccount();
+      this._msg('Sign-in could not be completed — please try again.');
+    }
+  }
+
   // ---------------- entitlements (used by the game) ----------------
   get signedIn() { return !!this.state.user; }
   equippedSkin() { return this.equipped; }
@@ -206,12 +220,23 @@ export class Online {
         btn.disabled = true;
         btn.querySelector('span').textContent = 'Redirecting to Google…';
         this.audio.uiClick();
-        api.signInGoogle().catch((err) => {
+        const native = !!window.__isNativeApp;
+        const reset = () => {
           this._googleBusy = false;
-          btn.disabled = false;
-          btn.querySelector('span').textContent = 'Continue with Google';
+          if (btn.isConnected) {
+            btn.disabled = false;
+            btn.querySelector('span').textContent = 'Continue with Google';
+          }
+        };
+        // Native: Google forbids OAuth in embedded WebViews, so the flow runs
+        // in the SYSTEM browser and returns via /auth-return → starfall://auth
+        // deep link (handled in main.js). The WebView stays on this screen —
+        // re-enable the button so a retry is possible.
+        api.signInGoogle(native ? '/auth-return' : '/').catch((err) => {
+          reset();
           this._msg(err.message);
         });
+        if (native) setTimeout(reset, 6000);
       });
       $('acct-signin').addEventListener('click', () => this._emailAuth(false));
       $('acct-signup').addEventListener('click', () => this._emailAuth(true));
