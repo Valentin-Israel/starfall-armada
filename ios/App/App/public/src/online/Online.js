@@ -182,16 +182,13 @@ export class Online {
       body.querySelectorAll('[data-skin]').forEach((b) =>
         b.addEventListener('click', () => { this.audio.uiClick(); this.setSkin(b.dataset.skin); this._renderAccount(); }));
     } else {
-      // In the native app WebView, Google OAuth can't complete (Google blocks
-      // embedded webviews; the Safari round-trip loses the session) — offer
-      // email sign-in only there. On the web, Google works normally.
-      const native = !!window.__isNativeApp;
-      const googleBlock = native ? '' : `
-        <button class="btn btn-google" id="acct-google">${GOOGLE_G}<span>Continue with Google</span></button>
-        <div class="acct-or"><span>or use email</span></div>`;
+      // Google works on web AND in the app: capacitor.config allows navigation
+      // to the Google domains, so the OAuth flow stays inside the app WebView
+      // (same session/cookies) instead of bouncing out to Safari.
       body.innerHTML = `
         <p class="acct-intro">Sign in to save your progress, climb the global leaderboard and keep purchases across devices.</p>
-        ${googleBlock}
+        <button class="btn btn-google" id="acct-google">${GOOGLE_G}<span>Continue with Google</span></button>
+        <div class="acct-or"><span>or use email</span></div>
         <input id="acct-name" placeholder="Callsign (sign-up only)" maxlength="12" autocomplete="nickname" />
         <input id="acct-email" type="email" placeholder="Email" autocomplete="email" />
         <input id="acct-pass" type="password" placeholder="Password (8+ characters)" autocomplete="current-password" />
@@ -200,7 +197,7 @@ export class Online {
           <button class="btn" id="acct-signup">CREATE ACCOUNT</button>
         </div>
         <div class="acct-msg" id="acct-msg"></div>`;
-      if (!native) $('acct-google').addEventListener('click', (e) => {
+      $('acct-google').addEventListener('click', (e) => {
         // Guard against double-clicks: each social sign-in overwrites the state
         // cookie, so a second click invalidates the first flow → state_mismatch.
         if (this._googleBusy) return;
