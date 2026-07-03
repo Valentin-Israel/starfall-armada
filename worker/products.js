@@ -33,11 +33,29 @@ export const PRODUCT_BY_KEY = Object.fromEntries(PRODUCTS.map((p) => [p.key, p])
 // Resolve the live price id for a product from env (returns null if unset).
 export const priceIdFor = (product, env) => (product?.priceEnv ? env[product.priceEnv] || null : null);
 
-// Public catalog for the client: only products whose price id is configured.
-export function publicCatalog(env) {
+// Public catalog for the client, given a resolved { productKey: priceId } map.
+export function publicCatalog(priceMap) {
   return PRODUCTS
-    .filter((p) => priceIdFor(p, env))
+    .filter((p) => priceMap[p.key])
     .map(({ key, label, kind, credits, skin, monthlyCredits }) => ({
       key, label, kind, credits, skin, monthlyCredits,
     }));
+}
+
+// Match active Stripe prices to products by PRODUCT NAME (case/whitespace
+// insensitive). Subscriptions must be recurring prices; one-time products
+// must not be. Pure function — unit-testable without Stripe.
+export function matchPricesByName(products, stripePrices) {
+  const map = {};
+  for (const p of products) {
+    const want = p.label.trim().toLowerCase();
+    const hit = stripePrices.find((pr) => {
+      const prod = pr.product && typeof pr.product === 'object' ? pr.product : null;
+      if (!prod || prod.active === false) return false;
+      if ((prod.name || '').trim().toLowerCase() !== want) return false;
+      return p.mode === 'subscription' ? !!pr.recurring : !pr.recurring;
+    });
+    if (hit) map[p.key] = hit.id;
+  }
+  return map;
 }
