@@ -259,31 +259,42 @@ export class Online {
     const body = $('store-body');
     balance.innerHTML = this.signedIn
       ? `<span>${this.state.credits.toLocaleString('en-US')} credits</span>${this.state.passActive ? '<span class="pass-on">Battle Pass ✦</span>' : ''}`
-      : '<span>Sign in to buy and keep purchases</span>';
+      : '';
     body.innerHTML = '<div class="score-empty">Loading store…</div>';
     let products = [];
-    try { ({ products } = await api.store()); } catch { /* below */ }
-    if (!products.length) {
-      body.innerHTML = '<div class="score-empty">Store not configured yet.</div>';
-      return;
-    }
-    const labelExtra = (p) =>
-      p.kind === 'credits' ? `+${p.credits.toLocaleString('en-US')} credits`
-      : p.kind === 'skin' ? 'Ship skin'
-      : p.monthlyCredits ? `Subscription · +${p.monthlyCredits}/mo` : 'Subscription';
-    body.innerHTML = products.map((p) => {
-      const owned = p.kind === 'skin' && this.state.skins.includes(p.skin);
-      const passOwned = p.kind === 'subscription' && this.state.passActive;
-      const disabled = owned || passOwned;
-      return `<div class="store-item ${p.kind === 'subscription' ? 'is-pass' : ''}">
-        <div class="store-item-title">${esc(p.label)}</div>
-        <div class="store-item-sub">${labelExtra(p)}</div>
-        <button class="btn ${disabled ? '' : 'btn-primary'}" data-buy="${esc(p.key)}" ${disabled ? 'disabled' : ''}>
-          ${owned ? 'OWNED' : passOwned ? 'ACTIVE' : 'BUY'}</button>
+    try { ({ products } = await api.store()); } catch { /* endpoint unavailable */ }
+
+    // Signed-out: a real call-to-action instead of a passive hint.
+    const signinCta = this.signedIn ? '' : `
+      <div class="store-signin">
+        <p>Sign in to buy — purchases stay on your account across devices.</p>
+        <button class="btn btn-primary" id="store-signin">SIGN IN / CREATE ACCOUNT</button>
       </div>`;
-    }).join('');
-    body.querySelectorAll('[data-buy]').forEach((b) =>
-      b.addEventListener('click', () => this._buy(b.dataset.buy)));
+
+    if (!products.length) {
+      body.innerHTML = signinCta +
+        '<div class="score-empty">The store is being restocked — check back soon.</div>';
+    } else {
+      const labelExtra = (p) =>
+        p.kind === 'credits' ? `+${p.credits.toLocaleString('en-US')} credits`
+        : p.kind === 'skin' ? 'Ship skin'
+        : p.monthlyCredits ? `Subscription · +${p.monthlyCredits}/mo` : 'Subscription';
+      body.innerHTML = signinCta + products.map((p) => {
+        const owned = p.kind === 'skin' && this.state.skins.includes(p.skin);
+        const passOwned = p.kind === 'subscription' && this.state.passActive;
+        const disabled = owned || passOwned;
+        return `<div class="store-item ${p.kind === 'subscription' ? 'is-pass' : ''}">
+          <div class="store-item-title">${esc(p.label)}</div>
+          <div class="store-item-sub">${labelExtra(p)}</div>
+          <button class="btn ${disabled ? '' : 'btn-primary'}" data-buy="${esc(p.key)}" ${disabled ? 'disabled' : ''}>
+            ${owned ? 'OWNED' : passOwned ? 'ACTIVE' : 'BUY'}</button>
+        </div>`;
+      }).join('');
+      body.querySelectorAll('[data-buy]').forEach((b) =>
+        b.addEventListener('click', () => this._buy(b.dataset.buy)));
+    }
+    const cta = $('store-signin');
+    if (cta) cta.addEventListener('click', () => { this.audio.uiClick(); this.openAccount(); });
   }
 
   async _buy(product) {
