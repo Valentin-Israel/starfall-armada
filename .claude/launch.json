@@ -1,0 +1,10 @@
+{
+  "version": "0.0.1",
+  "configurations": [{
+    "name": "starfall",
+    "runtimeExecutable": "npm",
+    "runtimeArgs": ["run", "dev"],
+    "port": 5173,
+    "autoPort": true
+  }]
+}
