@@ -6,7 +6,13 @@
 	"appendUserAgent": "StarfallApp",
 	"server": {
 		"url": "https://starfall.valentin.is",
-		"androidScheme": "https"
+		"androidScheme": "https",
+		"allowNavigation": [
+			"accounts.google.com",
+			"*.google.com",
+			"*.gstatic.com",
+			"*.googleusercontent.com"
+		]
 	},
 	"ios": {
 		"contentInset": "always",
