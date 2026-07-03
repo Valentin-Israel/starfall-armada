@@ -25,7 +25,8 @@ export const PRODUCTS = [
 
   // --- Recurring battle pass ---
   { key: 'battlepass', label: 'Battle Pass', kind: 'subscription', mode: 'subscription',
-    grantsPass: true, monthlyCredits: 3000, priceEnv: 'STRIPE_PRICE_BATTLEPASS' },
+    grantsPass: true, monthlyCredits: 3000, priceEnv: 'STRIPE_PRICE_BATTLEPASS',
+    aliases: ['Starfall Battle Pass'] },
 ];
 
 export const PRODUCT_BY_KEY = Object.fromEntries(PRODUCTS.map((p) => [p.key, p]));
@@ -42,17 +43,21 @@ export function publicCatalog(priceMap) {
     }));
 }
 
-// Match active Stripe prices to products by PRODUCT NAME (case/whitespace
-// insensitive). Subscriptions must be recurring prices; one-time products
-// must not be. Pure function — unit-testable without Stripe.
+// Match active Stripe prices to products by PRODUCT NAME. Tolerant matching:
+// case/whitespace insensitive, an optional "Starfall"-prefix on the Stripe
+// name is ignored ("Starfall Battle Pass" → "Battle Pass"), and per-product
+// `aliases` are accepted. Subscriptions must be recurring prices; one-time
+// products must not be. Pure function — unit-testable without Stripe.
+const normName = (s) => (s || '').trim().toLowerCase().replace(/^starfall[:\s-]+/, '');
+
 export function matchPricesByName(products, stripePrices) {
   const map = {};
   for (const p of products) {
-    const want = p.label.trim().toLowerCase();
+    const wanted = new Set([p.label, ...(p.aliases || [])].map(normName));
     const hit = stripePrices.find((pr) => {
       const prod = pr.product && typeof pr.product === 'object' ? pr.product : null;
       if (!prod || prod.active === false) return false;
-      if ((prod.name || '').trim().toLowerCase() !== want) return false;
+      if (!wanted.has(normName(prod.name))) return false;
       return p.mode === 'subscription' ? !!pr.recurring : !pr.recurring;
     });
     if (hit) map[p.key] = hit.id;
