@@ -106,65 +106,41 @@ Full step-by-step guides:
 
 ---
 
-## 📱 Ship it to the App Store & Google Play (Capacitor)
+## 📱 Native apps — TestFlight & Google Play (Capacitor)
 
-The web game is wrapped into native iOS/Android apps with [Capacitor](https://capacitorjs.com). The web assets load from the app bundle, so ES modules and the PWA features work offline out of the box.
-
-### 1. Install Capacitor
-
-```bash
-npm install @capacitor/core
-npm install -D @capacitor/cli
-npm install @capacitor/ios @capacitor/android @capacitor/splash-screen @capacitor/status-bar
-```
-
-`capacitor.config.json` is already configured (`appId: is.valentin.starfall`, `webDir: public`).
-
-### 2. Add the native platforms
+Wrapped into native iOS/Android apps with [Capacitor 8](https://capacitorjs.com).
+The config uses **`server.url: https://starfall.valentin.is`**, so the native
+WebView loads the live site — accounts (cookie sessions) and the `/api/*` calls
+work unchanged, and every Worker deploy updates the app with no new binary.
 
 ```bash
-npx cap add ios
-npx cap add android
-npx cap sync          # copies web assets + config into the native projects
+npm install
+npx cap add ios && npx cap add android
+npm run icons && npx capacitor-assets generate   # icons + splash into ios/ & android/
+npx cap sync
 ```
 
-### 3. App icons & splash
+**Full click-by-click runbook** (Xcode → TestFlight, Play Console → Internal
+Testing, signing, encryption compliance, IAP policy) is in
+**[`docs/MOBILE-TESTFLIGHT.md`](docs/MOBILE-TESTFLIGHT.md)** — verified against
+live Apple/Google/Capacitor docs.
 
-```bash
-npm run icons                          # regenerate web icons from assets/icons/icon.svg
-npx @capacitor/assets generate         # generate native icon/splash sets for both platforms
-```
-
-### 4. iOS — build & submit
-
-```bash
-npx cap open ios       # opens Xcode
-```
-In Xcode: set your **Team / signing**, bump the version & build number, then **Product ▸ Archive ▸ Distribute App ▸ App Store Connect**. Requires a macOS machine with Xcode and an Apple Developer account ($99/yr).
-
-### 5. Android — build & submit
-
-```bash
-npx cap open android   # opens Android Studio
-```
-In Android Studio: **Build ▸ Generate Signed Bundle (.aab)**, sign with your upload key, then upload the `.aab` to the [Google Play Console](https://play.google.com/console) ($25 one-time).
-
-### 6. Store-listing checklist
-
-- [x] App icons (1024² for iOS, 512² for Play) — generated from `assets/icons/icon.svg`
-- [x] Privacy: **no personal data collected**, no network calls, no tracking, no ads — declare "Data not collected" in both stores
-- [x] Offline-capable, no account required
-- [ ] Screenshots per device class (use `tools/verify.mjs` output as a starting point)
-- [ ] Store description, keywords, age rating (PEGI 7 / ESRB E — mild fantasy violence)
-- [ ] Support URL & marketing copy
-
-> ⚠️ Native archiving requires the platform toolchains (Xcode on macOS / Android Studio) and paid developer accounts. Everything in this repo — the game, config and assets — is ready for that final step.
+> ⚠️ **Store-policy note:** internal testing (TestFlight / Play Internal) has no
+> content review, so test builds can show the Stripe store. Before a **public**
+> release, Apple (Guideline 3.1.1) and Google (Play Billing) require in-app
+> digital goods to use their own IAP — plan to gate the store or add IAP then.
+> Details + current US/EU carve-outs in the runbook.
 
 ---
 
 ## 🛡 Privacy
 
-Starfall collects **nothing**. No analytics, no network requests, no accounts. Scores and settings live only in your device's `localStorage`.
+Local play (scores, settings) stays in your device's `localStorage`. If you
+create an account, email + game progress + purchases are stored to sync across
+devices — see [`/privacy`](https://starfall.valentin.is/privacy),
+[`/terms`](https://starfall.valentin.is/terms) and
+[`/impressum`](https://starfall.valentin.is/impressum). No ads, no tracking, no
+data sold.
 
 ## 📄 License
 
