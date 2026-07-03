@@ -2,9 +2,16 @@
 node_modules/
 package-lock.json
 
-# Capacitor native projects (generated locally during packaging)
-/ios/
-/android/
+# Capacitor: native projects ARE committed (Capacitor treats them as source).
+# Ignore only the generated copies of the web assets/config inside them.
+ios/App/App/public/
+ios/App/output/
+ios/DerivedData/
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/.gradle/
+android/app/build/
+android/build/
 
 # Cloudflare Wrangler
 .wrangler/

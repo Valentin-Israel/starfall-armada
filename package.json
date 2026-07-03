@@ -28,10 +28,14 @@
   "author": "Valentin Israel",
   "license": "MIT",
   "devDependencies": {
+    "@capacitor/cli": "^8.4.1",
     "playwright-core": "^1.61.1",
     "wrangler": "^4.20.0"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
     "better-auth": "^1.6.21",
     "kysely": "^0.29.2",
     "kysely-d1": "^0.4.0",

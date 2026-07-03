@@ -26,18 +26,25 @@ const maskableSvg = svg
 
 const tmp = await fs.mkdtemp(path.join(os.tmpdir(), 'starfall-icons-'));
 
-async function renderPng(src, size, outPath) {
+async function renderPng(src, size, outPath, { transparent = false, scale = 1, bg = null } = {}) {
+  // For very large outputs (e.g. 2732² splash) Chrome caps the paintable
+  // viewport and pads the screenshot with the default background color —
+  // render via device-scale factor and set that default color explicitly
+  // (transparent for icon layers, splash color for splashes).
+  const cssSize = Math.round(size / scale);
   const dataUri = 'data:image/svg+xml;base64,' + Buffer.from(src).toString('base64');
   const html = `<!doctype html><html><head><meta charset="utf-8"><style>
-    html,body{margin:0;padding:0;background:transparent}
-    img{display:block;width:${size}px;height:${size}px}
+    html,body{margin:0;padding:0;background:${bg ? '#' + bg.slice(0, 6) : 'transparent'}}
+    img{display:block;width:${cssSize}px;height:${cssSize}px}
   </style></head><body><img src="${dataUri}"></body></html>`;
   const htmlPath = path.join(tmp, `r${size}-${path.basename(outPath)}.html`);
   await fs.writeFile(htmlPath, html);
+  const bgFlag = transparent ? '00000000' : bg;
   await exec(CHROME, [
     '--headless=new', '--no-sandbox', '--disable-gpu', '--hide-scrollbars',
-    '--force-device-scale-factor=1',
-    `--screenshot=${outPath}`, `--window-size=${size},${size}`, `file://${htmlPath}`,
+    `--force-device-scale-factor=${scale}`,
+    ...(bgFlag ? [`--default-background-color=${bgFlag}`] : []),
+    `--screenshot=${outPath}`, `--window-size=${cssSize},${cssSize}`, `file://${htmlPath}`,
   ]);
 }
 
@@ -91,6 +98,49 @@ for (const size of icoSizes) {
 const icoPath = path.join(PUBLIC, 'favicon.ico');
 await fs.writeFile(icoPath, packIco(icoImages));
 console.log('✓ wrote favicon.ico (16/32/48 multi-res)');
+
+// ---- Mobile source assets for `npx capacitor-assets generate` ----
+// Convention (capacitorjs.com/docs/guides/splash-screens-and-icons):
+//   assets/icon-only.png (1024²), icon-foreground.png + icon-background.png
+//   (Android adaptive layers, 1024²), splash.png + splash-dark.png (2732²).
+const MOBILE_DIR = path.join(ROOT, 'assets');
+await fs.mkdir(MOBILE_DIR, { recursive: true });
+
+// Shared defs from the master icon.
+const DEFS = svg.slice(svg.indexOf('<defs>'), svg.indexOf('</defs>') + 7);
+const SHIP = svg.slice(svg.indexOf('<!-- ship -->'), svg.lastIndexOf('</svg>'));
+
+// icon-only: full-bleed background (stores apply their own corner masks).
+const iconOnly = svg.replace('rx="112"', 'rx="0"');
+await renderPng(iconOnly, 1024, path.join(MOBILE_DIR, 'icon-only.png'));
+console.log('✓ wrote assets/icon-only.png (1024²)');
+
+// Adaptive-icon foreground: ship only, transparent, scaled into the safe zone.
+const fg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  ${DEFS}
+  <g transform="translate(256 256) scale(0.62) translate(-256 -252)">${SHIP.replace('<!-- ship -->', '')}</g>
+</svg>`;
+await renderPng(fg, 1024, path.join(MOBILE_DIR, 'icon-foreground.png'), { transparent: true });
+console.log('✓ wrote assets/icon-foreground.png (1024², transparent)');
+
+// Adaptive-icon background: the nebula gradient, full bleed.
+const bg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  ${DEFS}
+  <rect width="512" height="512" fill="url(#bg)"/>
+</svg>`;
+await renderPng(bg, 1024, path.join(MOBILE_DIR, 'icon-background.png'));
+console.log('✓ wrote assets/icon-background.png (1024²)');
+
+// Splash: dark space background with the ship centered (safe for any crop).
+const splash = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 2732 2732" width="2732" height="2732">
+  ${DEFS}
+  <rect width="2732" height="2732" fill="#02030a"/>
+  <rect width="2732" height="2732" fill="url(#bg)" opacity="0.75"/>
+  <g transform="translate(1366 1366) scale(1.35) translate(-256 -252)">${SHIP.replace('<!-- ship -->', '')}</g>
+</svg>`;
+await renderPng(splash, 2732, path.join(MOBILE_DIR, 'splash.png'), { scale: 2, bg: '02030aff' });
+await fs.copyFile(path.join(MOBILE_DIR, 'splash.png'), path.join(MOBILE_DIR, 'splash-dark.png'));
+console.log('✓ wrote assets/splash.png + splash-dark.png (2732²)');
 
 await fs.rm(tmp, { recursive: true, force: true });
 console.log('Icons generated.');

@@ -4,11 +4,13 @@
   "webDir": "public",
   "backgroundColor": "#02030aff",
   "server": {
+    "url": "https://starfall.valentin.is",
     "androidScheme": "https"
   },
   "ios": {
     "contentInset": "always",
-    "backgroundColor": "#02030aff"
+    "backgroundColor": "#02030aff",
+    "limitsNavigationsToAppBoundDomains": true
   },
   "android": {
     "backgroundColor": "#02030aff",
