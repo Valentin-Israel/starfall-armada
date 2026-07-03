@@ -233,6 +233,19 @@
     <div class="screen screen-tap hidden" id="screen-tap">
       <p>TAP TO ENGAGE</p>
     </div>
+
+    <!-- In-app web view: legal pages (Privacy/Terms/Impressum) open here so
+         they stay inside the app instead of navigating the game away with no
+         way back. Same-origin iframe, closed with ✕ or a backdrop tap. -->
+    <div class="screen screen-webview hidden" id="screen-webview" aria-hidden="true">
+      <div class="webview-card">
+        <div class="webview-bar">
+          <span class="webview-title" id="webview-title">Info</span>
+          <button class="webview-close" id="webview-close" aria-label="Close">✕</button>
+        </div>
+        <iframe class="webview-frame" id="webview-frame" title="Document" referrerpolicy="no-referrer"></iframe>
+      </div>
+    </div>
   </div>
 
   <script type="module" src="./src/main.js"></script>
