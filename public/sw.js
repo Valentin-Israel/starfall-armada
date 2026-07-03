@@ -1,12 +1,13 @@
 // Service worker — caches the app shell for instant loads and offline play.
 // NOTE: bump CACHE on ANY asset/icon change, or returning visitors keep the old
 // cached copy forever (this SW also runtime-caches same-origin GETs).
-const CACHE = 'starfall-v3';
+const CACHE = 'starfall-v4';
 const ASSETS = [
   '/',
   '/index.html',
   '/privacy',
   '/terms',
+  '/impressum',
   '/manifest.webmanifest',
   '/styles/main.css',
   '/src/main.js',

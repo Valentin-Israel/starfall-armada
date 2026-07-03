@@ -2,12 +2,14 @@
 // Same-origin, cookie-based sessions (credentials: 'include'). No SDK / bundler.
 
 async function req(path, { method = 'GET', body } = {}) {
-  const res = await fetch(path, {
-    method,
-    credentials: 'include',
-    headers: body ? { 'content-type': 'application/json' } : undefined,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  const opts = { method, credentials: 'include' };
+  if (method !== 'GET') {
+    // better-auth requires Content-Type: application/json even on body-less
+    // POSTs (sign-out returns 415 otherwise) — always send a JSON body.
+    opts.headers = { 'content-type': 'application/json' };
+    opts.body = JSON.stringify(body ?? {});
+  }
+  const res = await fetch(path, opts);
   let data = null;
   try { data = await res.json(); } catch { /* empty body */ }
   if (!res.ok) {

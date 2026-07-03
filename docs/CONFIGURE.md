@@ -344,9 +344,9 @@ This produces the `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` that the Worker 
 1. In the left hamburger menu (☰), go to **APIs & Services** → **OAuth consent screen**. (This now opens the **Google Auth Platform**. Direct link: `https://console.cloud.google.com/auth/overview`.)
 2. If the project has never been configured, you'll see a **Google Auth Platform** intro page. Click **Get started**.
 3. The **Get started** wizard is a single page with stepper sections. Fill them in:
-   - **App Information** → **App name**: `Starfall Armada`. **User support email**: pick your own email (e.g. `valentin.israel@cashxchain.com`) from the dropdown. Click **Next**.
+   - **App Information** → **App name**: `Starfall Armada`. **User support email**: pick your own email (e.g. `support@valentin.is`) from the dropdown. Click **Next**.
    - **Audience** → select **External**. Click **Next**. (External = any Google account can sign in once published. "Internal" only exists if you're inside a Google Workspace org and would limit sign-in to org members.)
-   - **Contact Information** → enter a developer contact **Email address** (e.g. `valentin.israel@cashxchain.com`). Click **Next**.
+   - **Contact Information** → enter a developer contact **Email address** (e.g. `support@valentin.is`). Click **Next**.
    - **Finish** → tick **I agree to the Google API Services: User Data Policy**, click **Continue**, then **Create**.
 
 ### 3. Add scopes (Data Access)
@@ -527,7 +527,7 @@ Use **that** `whsec_...` as `STRIPE_WEBHOOK_SECRET` **only** for local runs. It 
 
 This produces the `RESEND_API_KEY` secret your Worker expects, and a verified sending domain so your `from:` address is accepted. Verification of the API key matters too: the `from` address you set in code **must** be on a domain you have verified here, otherwise sends fail.
 
-Recommendation: verify a **subdomain** like `send.cashxchain.com` (not the apex `cashxchain.com`). A subdomain isolates sending reputation and avoids MX conflicts with your existing mailbox provider on the root domain. The `from` address can still be anything `@cashxchain.com` once the subdomain is verified — Resend authenticates the whole domain via the records below.
+Recommendation: verify a **subdomain** like `mail.valentin.is` (not the apex `valentin.is`). A subdomain isolates sending reputation and avoids MX conflicts with your existing mailbox provider on the root domain. The `from` address can still be anything `@valentin.is` once the subdomain is verified — Resend authenticates the whole domain via the records below.
 
 ---
 
@@ -538,12 +538,12 @@ You should create the domain before the API key so you can scope the key to it.
 1. Go to **https://resend.com** and sign in. (First time: **Sign Up**, confirm your email, finish onboarding.)
 2. In the left sidebar, click **Domains**.
 3. Click **Add Domain** (top-right).
-4. In **Name**, enter `send.cashxchain.com` (the subdomain). Leave it as the apex only if you deliberately want to send from the root domain.
+4. In **Name**, enter `mail.valentin.is` (the subdomain). Leave it as the apex only if you deliberately want to send from the root domain.
 5. Under **Region**, pick the region closest to your users / Worker. Options are: **us-east-1** (N. Virginia), **eu-west-1** (Ireland), **sa-east-1** (São Paulo), **ap-northeast-1** (Tokyo). For an EU-based operation (Munich UG), choose **eu-west-1**. Note: **region is permanent** — the MX value below must match the region you pick, so don't change it later.
 6. Click **Add** (or **Add Domain**).
 7. Resend opens the domain detail page and shows a **DNS Records** table. **Keep this tab open** — the DKIM value and exact MX hostname are generated uniquely for your domain and only appear here. You'll copy them into Cloudflare in Part B.
 
-The table will list records of these types (host names assume the `send.cashxchain.com` subdomain):
+The table will list records of these types (host names assume the `mail.valentin.is` subdomain):
 
 | Purpose | Type | Name / Host (Resend shows) | Value (Resend shows) | Priority |
 |---|---|---|---|---|
@@ -561,16 +561,16 @@ Notes on the values:
 
 ### Part B — Add the DNS records in Cloudflare (DNS-only / grey cloud)
 
-Your DNS is on Cloudflare (the `valentin.is` / `cashxchain.com` zones). Add each record from the Resend table.
+Your DNS is on Cloudflare (the `valentin.is` zone). Add each record from the Resend table.
 
 1. Go to **https://dash.cloudflare.com** and sign in.
-2. On the account home, click the **cashxchain.com** zone (the website/zone card).
+2. On the account home, click the **valentin.is** zone (the website/zone card).
 3. In the left sidebar, click **DNS**, then **Records**.
 4. For **each** record in the Resend table, click **+ Add record** and fill it in. **Critical: set Proxy status to "DNS only" (grey cloud), not "Proxied" (orange cloud)** — Cloudflare's proxy only handles HTTP, and proxying mail/auth records breaks MX/SPF/DKIM/DMARC lookups. (Proxy only applies to A/AAAA/CNAME records; MX and TXT have no proxy toggle.)
 
    **a. MX record**
    - **Type:** `MX`
-   - **Name:** `send` (Cloudflare auto-expands to `send.cashxchain.com`)
+   - **Name:** `send` (Cloudflare auto-expands to `mail.valentin.is`)
    - **Mail server:** `feedback-smtp.eu-west-1.amazonses.com` (paste exactly what Resend shows)
    - **Priority:** `10`
    - Click **Save**.
@@ -601,7 +601,7 @@ Cloudflare tip: when entering a long TXT value, do **not** wrap it in extra quot
 1. Return to the Resend **Domains** tab (the domain detail page).
 2. Click **Verify DNS Records** (button on the domain page). Resend re-queries each record and updates the per-record status indicators.
 3. Wait for status to change to **Verified**. Cloudflare DNS usually propagates in **a few minutes**; Resend keeps re-checking for up to **72 hours**. If a record stays **Pending/Failure**, re-check the host name and value in Cloudflare (most common cause: proxy left ON, or the subdomain prefix doubled).
-4. Once the domain shows **Verified**, you can send from any address on it (e.g. `Starfall Armada <noreply@send.cashxchain.com>`). The `from` in your Worker code must use this verified domain.
+4. Once the domain shows **Verified**, you can send from any address on it (e.g. `Starfall Armada <noreply@mail.valentin.is>`). The `from` in your Worker code must use this verified domain.
 
 ---
 
@@ -611,7 +611,7 @@ Cloudflare tip: when entering a long TXT value, do **not** wrap it in extra quot
 2. Click **Create API Key** (top-right).
 3. **Name:** enter something identifiable, e.g. `starfall-armada-prod`.
 4. **Permission:** choose **Sending access** (least privilege — the key can only send emails, which is all the Worker needs). Choose **Full access** only if you need the key to manage domains/keys via API.
-5. **Domain:** with **Sending access** selected, the **Domain** dropdown is enabled — restrict the key to **send.cashxchain.com**. (With **Full access**, the Domain field is disabled.)
+5. **Domain:** with **Sending access** selected, the **Domain** dropdown is enabled — restrict the key to **mail.valentin.is**. (With **Full access**, the Domain field is disabled.)
 6. Click **Add** (or **Create**).
 7. Resend shows the key value **once** (starts with `re_...`). **Copy it now** — it is not shown again. This string is your `RESEND_API_KEY`.
 
@@ -623,7 +623,7 @@ Since the Worker is `starfall-armada` deployed on Cloudflare, set the value as a
 
 - Cloudflare dashboard: **Workers & Pages** → **starfall-armada** → **Settings** → **Variables and Secrets** → **Add** → set **Type: Secret**, **Variable name:** `RESEND_API_KEY`, **Value:** the `re_...` string → **Deploy**.
 
-Keep the same `from` domain (`send.cashxchain.com`) consistent between your code and the verified domain, or sends will be rejected.
+Keep the same `from` domain (`mail.valentin.is`) consistent between your code and the verified domain, or sends will be rejected.
 
 <details><summary>Sources for this section (verified high confidence)</summary>
 

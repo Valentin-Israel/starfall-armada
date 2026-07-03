@@ -118,7 +118,7 @@ npm install -D @capacitor/cli
 npm install @capacitor/ios @capacitor/android @capacitor/splash-screen @capacitor/status-bar
 ```
 
-`capacitor.config.json` is already configured (`appId: com.cashxchain.starfall`, `webDir: public`).
+`capacitor.config.json` is already configured (`appId: is.valentin.starfall`, `webDir: public`).
 
 ### 2. Add the native platforms
 
@@ -168,4 +168,4 @@ Starfall collects **nothing**. No analytics, no network requests, no accounts. S
 
 ## 📄 License
 
-MIT © CashXChain
+MIT © Valentin Israel
