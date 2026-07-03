@@ -133,5 +133,5 @@ stripe listen --forward-to http://localhost:8787/api/stripe/webhook   # local te
 
 - Exact products & prices (credit pack amounts, skin list, battle-pass price/interval) —
   created in the Stripe Dashboard; their Price IDs go into the Worker.
-- `from:` email domain for Resend (verify a domain, e.g. `no-reply@cashxchain.com`).
+- `from:` email domain for Resend (verify a domain, e.g. `no-reply@mail.valentin.is`).
 - Whether the store is purely cosmetic vs. credits affecting gameplay (confirmed: **pay-to-win allowed**).

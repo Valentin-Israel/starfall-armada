@@ -3,10 +3,20 @@
 // Degrades gracefully when the backend isn't configured yet (treated as signed out).
 
 import { api } from './api.js';
+import { SKINS } from '../entities/Player.js';
 
 const SKIN_KEY = 'starfall.skin';
 const $ = (id) => document.getElementById(id);
 const esc = (s) => { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; };
+
+// Inline Google "G" mark (self-contained SVG — no external requests).
+const GOOGLE_G =
+  '<svg class="g-logo" viewBox="0 0 48 48" width="18" height="18" aria-hidden="true">' +
+  '<path fill="#EA4335" d="M24 9.5c3.54 0 6.7 1.22 9.19 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>' +
+  '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>' +
+  '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>' +
+  '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>' +
+  '</svg>';
 
 export class Online {
   constructor({ ui, audio }) {
@@ -123,32 +133,64 @@ export class Online {
   _renderAccount() {
     const body = $('account-body');
     if (this.state.user) {
-      const skinBtns = ['default', ...this.state.skins].map((s) =>
-        `<button class="chiplet ${this.equipped === s ? 'is-on' : ''}" data-skin="${esc(s)}">${esc(s)}</button>`).join('');
+      const name = this.state.user.name || 'Pilot';
+      const initial = esc(name.trim().charAt(0).toUpperCase() || 'P');
+      const skinBtns = ['default', ...this.state.skins].map((s) => {
+        const glow = (SKINS[s] || SKINS.default).glow;
+        return `<button class="chiplet ${this.equipped === s ? 'is-on' : ''}" data-skin="${esc(s)}">` +
+          `<span class="swatch" style="background:${glow};box-shadow:0 0 8px ${glow}"></span>${esc(s)}</button>`;
+      }).join('');
       body.innerHTML = `
-        <div class="acct-row"><span>Signed in</span><strong>${esc(this.state.user.email)}</strong></div>
-        <div class="acct-row"><span>Credits</span><strong>${this.state.credits.toLocaleString('en-US')}</strong></div>
-        <div class="acct-row"><span>Battle Pass</span><strong>${this.state.passActive ? 'ACTIVE ✦' : '—'}</strong></div>
-        <div class="acct-skins"><span>Ship skin</span><div class="chiplets">${skinBtns}</div></div>
-        <button class="btn" id="acct-signout">SIGN OUT</button>`;
-      $('acct-signout').addEventListener('click', async () => {
+        <div class="acct-profile">
+          <div class="acct-avatar">${initial}</div>
+          <div class="acct-id">
+            <strong>${esc(name)}</strong>
+            <span>${esc(this.state.user.email)}</span>
+          </div>
+        </div>
+        <div class="acct-stats">
+          <div class="acct-stat">
+            <span>CREDITS</span>
+            <strong class="credits">${this.state.credits.toLocaleString('en-US')}</strong>
+          </div>
+          <div class="acct-stat">
+            <span>BATTLE PASS</span>
+            <strong class="${this.state.passActive ? 'pass-active' : 'pass-off'}">${this.state.passActive ? 'ACTIVE ✦' : 'INACTIVE'}</strong>
+          </div>
+        </div>
+        <div class="acct-skins">
+          <span class="acct-label">SHIP SKIN</span>
+          <div class="chiplets">${skinBtns}</div>
+        </div>
+        <button class="btn" id="acct-store">⬡ OPEN STORE</button>
+        <button class="btn btn-signout" id="acct-signout">SIGN OUT</button>
+        <div class="acct-msg" id="acct-msg"></div>`;
+      $('acct-store').addEventListener('click', () => { this.audio.uiClick(); this.openStore(); });
+      $('acct-signout').addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        if (btn.disabled) return;
+        btn.disabled = true;
+        btn.textContent = 'SIGNING OUT…';
         this.audio.uiClick();
-        try { await api.signOut(); } catch { /* ignore */ }
+        try {
+          await api.signOut();
+        } catch { /* refresh() below reflects the true session state */ }
         await this.refresh();
         this._renderAccount();
+        if (this.signedIn) this._msg('Sign out failed — please try again.');
       });
       body.querySelectorAll('[data-skin]').forEach((b) =>
         b.addEventListener('click', () => { this.audio.uiClick(); this.setSkin(b.dataset.skin); this._renderAccount(); }));
     } else {
       body.innerHTML = `
-        <p class="acct-intro">Sign in to save progress, climb the global leaderboard and keep your purchases across devices.</p>
-        <button class="btn btn-primary" id="acct-google">Sign in with Google</button>
-        <div class="acct-or">— or —</div>
-        <input id="acct-name" placeholder="Callsign (sign-up only)" maxlength="12" autocomplete="off" />
+        <p class="acct-intro">Sign in to save your progress, climb the global leaderboard and keep purchases across devices.</p>
+        <button class="btn btn-google" id="acct-google">${GOOGLE_G}<span>Continue with Google</span></button>
+        <div class="acct-or"><span>or use email</span></div>
+        <input id="acct-name" placeholder="Callsign (sign-up only)" maxlength="12" autocomplete="nickname" />
         <input id="acct-email" type="email" placeholder="Email" autocomplete="email" />
-        <input id="acct-pass" type="password" placeholder="Password (8+ chars)" autocomplete="current-password" />
+        <input id="acct-pass" type="password" placeholder="Password (8+ characters)" autocomplete="current-password" />
         <div class="acct-actions">
-          <button class="btn" id="acct-signin">SIGN IN</button>
+          <button class="btn btn-primary" id="acct-signin">SIGN IN</button>
           <button class="btn" id="acct-signup">CREATE ACCOUNT</button>
         </div>
         <div class="acct-msg" id="acct-msg"></div>`;
@@ -159,17 +201,19 @@ export class Online {
         this._googleBusy = true;
         const btn = e.currentTarget;
         btn.disabled = true;
-        btn.textContent = 'Redirecting to Google…';
+        btn.querySelector('span').textContent = 'Redirecting to Google…';
         this.audio.uiClick();
         api.signInGoogle().catch((err) => {
           this._googleBusy = false;
           btn.disabled = false;
-          btn.textContent = 'Sign in with Google';
+          btn.querySelector('span').textContent = 'Continue with Google';
           this._msg(err.message);
         });
       });
       $('acct-signin').addEventListener('click', () => this._emailAuth(false));
       $('acct-signup').addEventListener('click', () => this._emailAuth(true));
+      // Enter in the password field submits a sign-in.
+      $('acct-pass').addEventListener('keydown', (e) => { if (e.key === 'Enter') this._emailAuth(false); });
     }
   }
 
@@ -179,11 +223,17 @@ export class Online {
   }
 
   async _emailAuth(isSignup) {
+    if (this._authBusy) return;
     this.audio.uiClick();
     const email = $('acct-email').value.trim();
     const pass = $('acct-pass').value;
     const name = ($('acct-name').value.trim() || email.split('@')[0] || 'Pilot').slice(0, 12);
     if (!email || pass.length < 8) { this._msg('Enter an email and an 8+ character password.'); return; }
+    const btn = $(isSignup ? 'acct-signup' : 'acct-signin');
+    const label = btn.textContent;
+    this._authBusy = true;
+    btn.disabled = true;
+    btn.textContent = isSignup ? 'CREATING…' : 'SIGNING IN…';
     try {
       if (isSignup) {
         await api.signUpEmail(name, email, pass);
@@ -192,9 +242,13 @@ export class Online {
         await api.signInEmail(email, pass);
         await this.refresh();
         this._renderAccount();
+        return; // re-rendered — btn no longer exists
       }
     } catch (e) {
       this._msg(e.status === 403 ? 'Please verify your email first (check your inbox).' : (e.message || 'Sign-in failed.'));
+    } finally {
+      this._authBusy = false;
+      if (btn.isConnected) { btn.disabled = false; btn.textContent = label; }
     }
   }
 
