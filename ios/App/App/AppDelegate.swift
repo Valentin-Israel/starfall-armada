@@ -7,7 +7,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Paint the window the app background colour so no pure-black gap from the
+        // UIWindow shows through at the top/bottom during layout/relayout (the
+        // intermittent black stripe). The WebView content itself is edge-to-edge
+        // (ios.contentInset = "never"); safe areas are handled in CSS.
+        window?.backgroundColor = UIColor(red: 2/255.0, green: 3/255.0, blue: 10/255.0, alpha: 1.0)
         return true
     }
 
