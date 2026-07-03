@@ -33,6 +33,10 @@
   "vars": {
     "BETTER_AUTH_URL": "https://starfall.valentin.is"
   },
+  // Keep dashboard-set plain-text vars (e.g. STRIPE_PRICE_*) on deploy.
+  // Without this, every git-push deploy wipes them — which is exactly what
+  // emptied the store once. Secrets always survive regardless.
+  "keep_vars": true,
 
   // ── Phase 3 activation ──────────────────────────────────────────────
   // To turn on accounts / leaderboard / store, UNCOMMENT the block below

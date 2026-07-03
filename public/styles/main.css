@@ -439,5 +439,13 @@ html, body {
 .store-item .btn { margin: 4px 0 0; padding: 9px; }
 .store-item .btn:disabled { opacity: 0.5; cursor: default; }
 
+.store-signin {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  background: linear-gradient(180deg, rgba(31,217,255,0.08), rgba(0,0,102,0.16));
+  border: 1px solid var(--panel-border); border-radius: 12px; padding: 16px;
+}
+.store-signin p { color: var(--grey); font-size: 13px; text-align: center; line-height: 1.5; margin: 0; }
+
 .btn-revive { background: linear-gradient(180deg, rgba(255,207,59,0.2), rgba(120,80,0,0.2)); border-color: rgba(255,207,59,0.5); }
 .btn-revive:hover { border-color: var(--warn); box-shadow: 0 0 30px rgba(255,207,59,0.35); }
