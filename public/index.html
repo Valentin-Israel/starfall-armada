@@ -102,7 +102,8 @@
         </div>
         <div class="menu-buttons">
           <button class="btn btn-primary" id="btn-play">▶ PLAY</button>
-          <button class="btn" id="btn-store">⬡ STORE</button>
+          <button class="btn" id="btn-hangar">⬡ HANGAR</button>
+          <button class="btn" id="btn-store">STORE</button>
           <button class="btn" id="btn-scores">LEADERBOARD</button>
           <button class="btn" id="btn-account">ACCOUNT</button>
           <button class="btn" id="btn-how">HOW TO PLAY</button>
@@ -111,6 +112,10 @@
         <div class="menu-best">
           <span>BEST</span>
           <strong id="menu-best-value">0</strong>
+        </div>
+        <div class="menu-credits">
+          <span>CREDITS</span>
+          <strong id="menu-credits-value" class="credits-value">0</strong>
         </div>
       </div>
       <!-- Account chip (filled by Online controller when signed in) -->
@@ -156,6 +161,21 @@
       <div class="modal-card" id="account-card">
         <h2>ACCOUNT</h2>
         <div id="account-body"><!-- filled by Online controller --></div>
+        <button class="btn btn-primary" data-close>BACK</button>
+      </div>
+    </div>
+
+    <!-- Hangar / ship selection -->
+    <div class="screen screen-modal hidden" id="screen-hangar">
+      <div class="modal-card hangar-card">
+        <div class="hangar-header">
+          <h2>HANGAR</h2>
+          <div class="hangar-wallet">
+            <span class="hangar-credits-label">CREDITS</span>
+            <span class="credits-value" id="hangar-credits-display">0</span>
+          </div>
+        </div>
+        <div class="ship-grid" id="ship-grid"></div>
         <button class="btn btn-primary" data-close>BACK</button>
       </div>
     </div>
@@ -220,6 +240,7 @@
             <div><span>BEST COMBO</span><strong id="over-combo">x1</strong></div>
           </div>
         </div>
+        <div class="over-credits-earned" id="over-credits-earned"></div>
         <div class="over-newbest hidden" id="over-newbest">★ NEW RECORD ★</div>
         <div class="over-nameentry hidden" id="over-nameentry">
           <input id="over-name" maxlength="12" placeholder="YOUR CALLSIGN" autocomplete="off" />

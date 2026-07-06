@@ -1,7 +1,9 @@
 // Persistent settings + leaderboard via localStorage (gracefully degrades).
 
 const SETTINGS_KEY = 'starfall.settings.v1';
-const SCORES_KEY = 'starfall.scores.v1';
+const SCORES_KEY   = 'starfall.scores.v1';
+const CREDITS_KEY  = 'starfall.credits.v1';
+const SHIP_KEY     = 'starfall.ship.v1';
 
 const DEFAULT_SETTINGS = {
   sound: true,
@@ -66,4 +68,23 @@ export const Storage = {
   clearScores() {
     write(SCORES_KEY, []);
   },
+
+  // ---- credits ----
+  loadCredits() { return read(CREDITS_KEY, 0); },
+  addCredits(amount) { write(CREDITS_KEY, Math.floor(this.loadCredits() + amount)); },
+
+  // ---- ship roster ----
+  _loadShipData() { return read(SHIP_KEY, { owned: ['viper'], selected: 'viper' }); },
+  _saveShipData(d) { write(SHIP_KEY, d); },
+  isShipOwned(id) { return this._loadShipData().owned.includes(id); },
+  unlockShip(id) {
+    const d = this._loadShipData();
+    if (!d.owned.includes(id)) { d.owned.push(id); this._saveShipData(d); }
+  },
+  selectShip(id) {
+    const d = this._loadShipData();
+    d.selected = id;
+    this._saveShipData(d);
+  },
+  getSelectedShipId() { return this._loadShipData().selected; },
 };

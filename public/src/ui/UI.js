@@ -2,6 +2,7 @@
 // Keeps all DOM concerns out of the game-simulation code.
 
 import { Storage } from '../core/Storage.js';
+import { SHIPS } from '../data/Ships.js';
 import { formatScore, clamp } from '../core/utils.js';
 
 const $ = (id) => document.getElementById(id);
@@ -29,6 +30,7 @@ export class UI {
       bombAbility: $('ability-bomb'),
       touch: $('touch-controls'),
       menuBest: $('menu-best-value'),
+      menuCredits: $('menu-credits-value'),
     };
 
     this._bindMenu();
@@ -76,10 +78,91 @@ export class UI {
     $('btn-how').addEventListener('click', () => { this.audio.uiClick(); this.show('screen-how'); });
     $('btn-scores').addEventListener('click', () => { this.audio.uiClick(); this.renderScores(); this.show('screen-scores'); });
     $('btn-settings').addEventListener('click', () => { this.audio.uiClick(); this.show('screen-settings'); });
+    $('btn-hangar').addEventListener('click', () => { this.audio.uiClick(); this.showHangar(); });
   }
 
   refreshMenu() {
     this.el.menuBest.textContent = formatScore(Storage.best());
+    if (this.el.menuCredits) this.el.menuCredits.textContent = formatScore(Storage.loadCredits());
+  }
+
+  // ---------- hangar ----------
+  showHangar() {
+    const el = $('hangar-credits-display');
+    if (el) el.textContent = formatScore(Storage.loadCredits());
+    this._renderHangar();
+    this.show('screen-hangar');
+  }
+
+  _renderHangar() {
+    const grid = $('ship-grid');
+    if (!grid) return;
+    const credits = Storage.loadCredits();
+    const selected = Storage.getSelectedShipId();
+    grid.innerHTML = '';
+
+    for (const ship of SHIPS) {
+      const owned = Storage.isShipOwned(ship.id);
+      const isSelected = ship.id === selected;
+      const card = document.createElement('div');
+      card.className = 'ship-card' + (isSelected ? ' ship-selected' : '');
+
+      card.innerHTML =
+        `<div class="ship-icon-wrap">
+          <div class="ship-icon" style="background:${ship.color}"></div>
+        </div>
+        <div class="ship-name" style="color:${ship.color}">${ship.name}</div>
+        <div class="ship-desc">${this._escape(ship.desc)}</div>
+        <div class="ship-stats">
+          ${this._statBar('SPD', ship.stats.speed / 5, '#1fd9ff')}
+          ${this._statBar('HP',  ship.stats.hp    / 5, '#ff3b5c')}
+          ${this._statBar('BMB', ship.stats.bombs / 5, '#ffcf3b')}
+          ${this._statBar('GUN', ship.stats.fire  / 5, '#b06cff')}
+        </div>
+        <div class="ship-cost">${ship.cost === 0 ? 'FREE' : formatScore(ship.cost) + ' cr'}</div>`;
+
+      if (isSelected) {
+        const btn = document.createElement('button');
+        btn.className = 'btn ship-btn selected-btn';
+        btn.textContent = '✓ SELECTED';
+        btn.disabled = true;
+        card.appendChild(btn);
+      } else if (owned) {
+        const btn = document.createElement('button');
+        btn.className = 'btn ship-btn';
+        btn.textContent = 'SELECT';
+        btn.addEventListener('click', () => {
+          this.audio.uiClick();
+          Storage.selectShip(ship.id);
+          this._renderHangar();
+        });
+        card.appendChild(btn);
+      } else {
+        const canAfford = credits >= ship.cost;
+        const btn = document.createElement('button');
+        btn.className = 'btn ship-btn buy-btn' + (canAfford ? '' : ' disabled');
+        btn.textContent = 'BUY · ' + formatScore(ship.cost) + ' cr';
+        if (canAfford) {
+          btn.addEventListener('click', () => {
+            this.audio.uiClick();
+            Storage.addCredits(-ship.cost);
+            Storage.unlockShip(ship.id);
+            Storage.selectShip(ship.id);
+            this.refreshMenu();
+            this.showHangar();
+          });
+        }
+        card.appendChild(btn);
+      }
+      grid.appendChild(card);
+    }
+  }
+
+  _statBar(label, ratio, color) {
+    return `<div class="ship-stat-row">
+      <span class="stat-label">${label}</span>
+      <div class="stat-track"><div class="stat-fill" style="width:${Math.round(ratio*100)}%;background:${color}"></div></div>
+    </div>`;
   }
 
   // ---------- modals ----------
@@ -194,6 +277,8 @@ export class UI {
     $('over-wave').textContent = stats.wave;
     $('over-kills').textContent = stats.kills;
     $('over-combo').textContent = 'x' + stats.bestCombo;
+    const earnedEl = $('over-credits-earned');
+    if (earnedEl) earnedEl.textContent = stats.creditsEarned > 0 ? `+ ${formatScore(stats.creditsEarned)} CREDITS` : '';
 
     const result = Storage.addScore(this._pendingName || 'PILOT', stats.score, stats.wave);
     const isRecord = result.rank === 0 && stats.score > 0;

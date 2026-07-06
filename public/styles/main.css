@@ -449,3 +449,59 @@ html, body {
 
 .btn-revive { background: linear-gradient(180deg, rgba(255,207,59,0.2), rgba(120,80,0,0.2)); border-color: rgba(255,207,59,0.5); }
 .btn-revive:hover { border-color: var(--warn); box-shadow: 0 0 30px rgba(255,207,59,0.35); }
+
+/* ===================== Menu credits ===================== */
+.menu-credits { color: var(--grey); letter-spacing: 0.2em; font-size: 13px; margin-top: 8px; }
+.menu-credits strong, .credits-value { color: var(--warn); font-size: 18px; font-weight: 800; }
+.over-credits-earned { color: var(--warn); font-weight: 800; letter-spacing: 0.2em; font-size: 13px; text-align: center; margin-bottom: 4px; min-height: 18px; }
+
+/* ===================== Hangar ===================== */
+.hangar-card {
+  width: min(840px, 96vw);
+  max-height: 92vh;
+  overflow-y: auto;
+}
+.hangar-header {
+  width: 100%; display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 4px;
+}
+.hangar-wallet { text-align: right; }
+.hangar-credits-label { display: block; color: var(--grey); font-size: 10px; letter-spacing: 0.22em; }
+
+.ship-grid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 12px;
+}
+@media (max-width: 560px) { .ship-grid { grid-template-columns: 1fr; } }
+
+.ship-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex; flex-direction: column; gap: 8px;
+  transition: border-color 0.2s;
+}
+.ship-card.ship-selected { border-color: var(--accent); background: rgba(31,217,255,0.06); }
+
+.ship-icon-wrap { display: flex; justify-content: center; }
+.ship-icon {
+  width: 28px; height: 34px;
+  clip-path: polygon(50% 0%, 100% 100%, 50% 75%, 0% 100%);
+}
+.ship-name { font-size: 15px; font-weight: 800; letter-spacing: 0.18em; text-align: center; }
+.ship-desc { color: var(--grey); font-size: 12px; text-align: center; line-height: 1.4; }
+.ship-cost { font-size: 12px; color: var(--warn); text-align: center; letter-spacing: 0.1em; font-weight: 700; }
+
+.ship-stats { display: flex; flex-direction: column; gap: 5px; }
+.ship-stat-row { display: flex; align-items: center; gap: 8px; }
+.stat-label { font-size: 10px; color: var(--grey); letter-spacing: 0.1em; width: 30px; flex-shrink: 0; }
+.stat-track { flex: 1; height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+.stat-fill { height: 100%; border-radius: 3px; transition: width 0.3s ease; }
+
+.ship-btn { font-size: 12px; padding: 9px 14px; margin-top: auto; }
+.selected-btn { background: linear-gradient(180deg, rgba(31,217,255,0.15), rgba(0,0,102,0.2)); border-color: var(--accent); }
+.buy-btn.disabled { opacity: 0.4; cursor: not-allowed; pointer-events: none; }

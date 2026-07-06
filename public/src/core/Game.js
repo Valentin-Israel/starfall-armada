@@ -11,6 +11,8 @@ import { Boss } from '../entities/Boss.js';
 import { PowerUp } from '../entities/PowerUp.js';
 import { BulletPool } from '../entities/Bullet.js';
 import { circleHit, rand, chance, pick, clamp } from './utils.js';
+import { getShip } from '../data/Ships.js';
+import { Storage } from './Storage.js';
 
 const STATE = { BOOT: 'boot', MENU: 'menu', PLAYING: 'playing', PAUSED: 'paused', OVER: 'over' };
 
@@ -64,11 +66,14 @@ export class Game {
   }
 
   startRun() {
+    // Load selected ship.
+    const ship = getShip(Storage.getSelectedShipId());
+
     // Reset run state.
     this.score = 0;
     this.displayScore = 0;
-    this.lives = 3;
-    this.bombs = 3;
+    this.lives = ship.lives;
+    this.bombs = ship.bombs;
     this.wave = 0;
     this.kills = 0;
     this.combo = 1;
@@ -77,12 +82,11 @@ export class Game {
     this.comboKills = 0;
     this._usedRevive = false;
 
-    this.player.reset();
-    // Entitlements: equipped skin + Battle Pass starting perk.
-    this.player.skin = this.online ? this.online.equippedSkin() : 'default';
+    this.player.reset(ship);
+    // Battle Pass starting perk stacks on top of ship stats.
     if (this.online && this.online.hasPass()) {
-      this.player.weaponLevel = 2;
-      this.bombs = 4;
+      this.player.weaponLevel = Math.min(this.player.weaponLevel + 1, 5);
+      this.bombs = Math.min(this.bombs + 1, 9);
     }
     this.playerBullets.clear();
     this.enemyBullets.clear();
@@ -124,11 +128,15 @@ export class Game {
     this.renderer.flash('#ff3b5c', 0.5);
     this.particles.explosion(this.player.x, this.player.y, '#1fd9ff', 2.4);
     this.ui.hideBoss();
+    // Award credits: 10% of score, minimum 1 per kill.
+    const earned = Math.max(this.kills, Math.floor(this.score * 0.1));
+    Storage.addCredits(earned);
     // Submit to the cloud leaderboard if signed in (non-blocking).
     if (this.online) this.online.submitScore(this.score, this.wave, this.bestCombo);
     setTimeout(() => {
       this.ui.showGameOver({
         score: this.score, wave: this.wave, kills: this.kills, bestCombo: this.bestCombo,
+        creditsEarned: earned,
       });
       this._offerRevive();
     }, 900);

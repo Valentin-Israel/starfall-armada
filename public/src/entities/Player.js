@@ -19,27 +19,28 @@ export class Player {
     this.reset();
   }
 
-  reset() {
+  reset(ship = null) {
     const { width, height } = this.game.renderer;
     this.x = width / 2;
     this.y = height - 120;
     this.vx = 0;
     this.vy = 0;
-    this.speed = 560;
-    this.accel = 9;
-    this.bank = 0;             // visual roll based on horizontal velocity
+    this.speed        = ship ? ship.speed        : 560;
+    this.accel        = ship ? ship.accel        : 9;
+    this.bank = 0;
     this.fireCooldown = 0;
-    this.fireRate = 0.16;      // seconds between shots
-    this.weaponLevel = 1;      // 1..5
+    this.fireRate     = ship ? ship.fireRate     : 0.16;
+    this.weaponLevel  = ship ? ship.weaponLevel  : 1;
     this.rapidTimer = 0;
-    this.invuln = 1.2;         // spawn protection
+    this.invuln = 1.2;
     this.shieldActive = false;
     this.shieldTimer = 0;
     this.shieldCooldown = 0;
-    this.shieldMax = 2.2;
-    this.shieldCdMax = 7;
+    this.shieldMax    = ship ? ship.shieldMax    : 2.2;
+    this.shieldCdMax  = ship ? ship.shieldCdMax  : 7;
     this.thrustPhase = 0;
     this.alive = true;
+    if (ship) this.skin = ship.skin;
   }
 
   get hasShield() { return this.shieldActive && this.shieldTimer > 0; }
