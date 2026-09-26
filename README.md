@@ -146,4 +146,4 @@ data sold.
 
 ## 📄 License
 
-MIT © Valentin Israel
+Copyright 2026 Valentin Israel. Licensed under the [Apache License 2.0](LICENSE) — see [`NOTICE`](NOTICE).
